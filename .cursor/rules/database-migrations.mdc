@@ -1,0 +1,25 @@
+---
+description: Database migrations require permission; one artisan migration at a time
+alwaysApply: true
+---
+
+# Database Migrations
+
+When schema changes are needed:
+
+1. **Ask first** — Never create or run a migration without explicit user permission.
+2. **Artisan only** — Create and run migrations only via Artisan commands (`php artisan make:migration`, `php artisan migrate`). Do not apply schema by editing the live DB, raw SQL scripts, or patch PHP files.
+3. **One migration at a time** — Create a single migration for the approved change, get permission, then run `php artisan migrate` for that one file. Do not batch multiple unrelated schema changes into one migration or run several pending migrations without asking again.
+4. **Confirm before migrate** — After the migration file is written, show what it does and wait for approval before running `migrate` (or `migrate:rollback` / `migrate:fresh`).
+
+```bash
+# ✅ GOOD — after user approves this specific change
+php artisan make:migration add_rank_to_tbl_registration_table
+# (user reviews the file)
+php artisan migrate
+
+# ❌ BAD
+php artisan migrate          # without asking
+php artisan migrate:fresh    # destructive, never without explicit ask
+# editing production DB / apply_*.php for schema
+```

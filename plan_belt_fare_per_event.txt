@@ -1,0 +1,72 @@
+Goal: Support event-specific belt fares (override default belt fees per event)
+
+1) Database design
+- Do NOT modify global tbl_belt during event creation; keep as default source
+- Add table: event_belt_fees (sparse overrides only, per event)
+  - id (PK)
+  - event_id (FK -> event.id, cascade delete)
+  - belt_id (FK -> tbl_belt.id)
+  - fee (decimal 10,2)
+  - unique index: event_id + belt_id
+  - Rationale: from_belt/to_belt always come from tbl_belt; only fee can change per event
+- Optional: keep existing tbl_belt as global defaults; event-specific entries override.
+
+- Create migration for event_belt_fees (event_id, belt_id, fee)
+- Do not auto-create rows per event; allow empty (fallback to tbl_belt)
+- Provide an optional console command to bulk copy defaults into an event when requested
+- Ensure FK references correct table names (event)
+
+3) Eloquent models
+- Create EventBeltFee model (belongsTo Event, belongsTo Belt)
+- Update Event model: hasMany eventBeltFees()
+- Update Belt model (tbl_belt): hasMany eventBeltFees()
+
+4) Business logic (pricing resolution)
+- Service method: getBeltFeeForEvent(eventId, beltId)
+  - If override exists in event_belt_fees for (eventId, beltId), use it; else fallback to tbl_belt.fees
+- Extend Registration pricing calculator to include belt fee from service
+- If additional_fee logic exists, keep it additive
+
+5) Controllers/Endpoints
+- Event create/update: optional toggle "Customize belt fees for this event"
+  - If enabled: accept an array of overrides [{belt_id, fee}] (no from/to changes)
+  - Persist only belts where fee != tbl_belt.fees
+- Registration create: read selected belt (maps to belt_id)
+- Use pricing service to compute amount and store on registration
+- Admin CRUD for event-specific belt fees (no touching tbl_belt)
+- Optional command: "Clone defaults from tbl_belt into overrides" for convenience
+
+- Event create/edit page: section "Belt fares (optional overrides)"
+  - List belts from tbl_belt with read-only from_belt/to_belt, editable fee field
+  - Columns: from_belt, to_belt, default_fee, override_fee (input)
+  - Button: "Use defaults" (clear overrides), optional "Clone defaults" to prefill
+- Client-side validation and formatting for currency
+
+7) Views (User)
+- If belt is chosen in form, show computed fee breakdown using override fee if present; otherwise default
+
+8) Validation
+- Prevent overlapping ranges per event (from_belt/to_belt) where semantics apply
+- Enforce positive decimal fee
+
+9) Data migration/backfill
+- Optional one-time artisan command to copy tbl_belt into event_belt_fees for selected events (belt_id + fee only)
+- Default behavior: no rows created; fallback to tbl_belt keeps current pricing
+
+10) Testing
+- Unit tests for pricing resolution (override + fallback)
+- Feature tests for registration creation with belt selection
+- Controller tests for admin CRUD on event_belt_fees
+
+11) Performance
+- Add indexes: (event_id, from_belt, to_belt)
+- Cache per-event fee map in memory for a request; optional Redis cache if needed
+
+12) Rollout
+- Deploy migration
+- Optionally run the clone command for events that need overrides
+- Verify admin UI for editing; verify registration flow pricing
+
+Notes
+- If belts are discrete (not ranges), simplify to belt (string) instead of from/to
+- If a canonical belt table is desired, normalize to tbl_belt_levels and reference by id
