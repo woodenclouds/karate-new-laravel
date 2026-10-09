@@ -110,6 +110,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Registration Management
     Route::get('/registrations', [EventController::class, 'showAllRegistrations'])->name('admin.registrations');
     Route::get('/pending', [EventController::class, 'showPendingRegistrations'])->name('admin.pending');
+    Route::post('/pending/sync-razorpay', [RazorpayController::class, 'reconcilePendingPayments'])->name('admin.pending.sync-razorpay');
     Route::get('/events/{id}/registrations', [EventController::class, 'registrations'])->name('admin.events.registrations');
     Route::post('/registrations/update-status', [EventController::class, 'updateRegistrationStatus'])->name('admin.registrations.update-status');
     

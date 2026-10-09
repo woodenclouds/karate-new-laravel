@@ -87,29 +87,32 @@
         }
 
         /* ============================================
-           BELT CERTIFICATE POSITIONING (Top-Left aligned)
+           BELT CERTIFICATE POSITIONING
+           Name and venue are centered on their lines.
            ============================================ */
         .certificate-belt .field-name {
             top: 20.7cm;
             left: 5.6cm;
+            width: 14cm;
             font-size: 15pt;
             font-weight: bold;
             text-transform: uppercase;
             color: #c00;
             max-width: 14cm;
             overflow: hidden;
-            text-align: left;
+            text-align: center;
         }
 
         .certificate-belt .field-place {
             top: 22.0cm;
             left: 5.6cm;
+            width: 14cm;
             font-size: 14pt;
             font-weight: bold;
             color: #000;
             max-width: 14cm;
             overflow: hidden;
-            text-align: left;
+            text-align: center;
         }
 
         .certificate-belt .field-reg-no {
@@ -141,24 +144,26 @@
         .certificate-competition .field-name {
             top: 16.9cm;
             left: 9.5cm;
+            width: 13cm;
             font-size: 13pt;
             font-weight: normal;
             text-transform: uppercase;
             color: #000;
             max-width: 13cm;
             overflow: hidden;
-            text-align: left;
+            text-align: center;
         }
 
         .certificate-competition .field-place {
             top: 20.6cm;
             left: 7.4cm;
+            width: 13cm;
             font-size: 13pt;
             font-weight: normal;
             color: #000;
             max-width: 13cm;
             overflow: hidden;
-            text-align: left;
+            text-align: center;
         }
 
         .certificate-competition .field-reg-no {

@@ -16,8 +16,38 @@ use Illuminate\Support\Str;
 
 class CertificateController extends Controller
 {
-    /** Belt name to template key mapping (scalable: add new belts here) */
-    private const BELT_TEMPLATE_KEYS = ['yellow', 'orange', 'green', 'blue', 'purple', 'brown'];
+    /**
+     * One certificate template per belt, most specific first.
+     * "Brown Belt 4th Kyu" must match before a generic "brown" template.
+     */
+    public const BELT_TEMPLATE_NAMES = [
+        'White Belt',
+        'Yellow Belt',
+        'Orange Belt',
+        'Green Belt',
+        'Blue Belt',
+        'Purple Belt',
+        'Brown Belt 4th Kyu',
+        'Brown Belt 3rd Kyu',
+        'Brown Belt 2nd Kyu',
+        'Brown Belt 1st Kyu',
+        'Black Shodan',
+    ];
+
+    private const BELT_TEMPLATE_KEYS = [
+        'brown 4th kyu',
+        'brown 3rd kyu',
+        'brown 2nd kyu',
+        'brown 1st kyu',
+        'black shodan',
+        'white',
+        'yellow',
+        'orange',
+        'green',
+        'blue',
+        'purple',
+        'brown',
+    ];
 
     /** Cached belt templates for current request (id => CertificateTemplate) */
     private $beltTemplateCache = null;
@@ -690,16 +720,36 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
         return $this->beltTemplateCache;
     }
 
+    private function beltTemplateAlreadyUsed(string $beltName, ?int $ignoreId = null): bool
+    {
+        $key = $this->normalizeBeltKey($beltName);
+        $templates = CertificateTemplate::where('certificate_type', 'belt')
+            ->when($ignoreId, function ($query) use ($ignoreId) {
+                $query->where('id', '!=', $ignoreId);
+            })
+            ->get();
+
+        foreach ($templates as $template) {
+            if ($this->normalizeBeltKey($template->name) === $key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
-     * Normalize belt name to template key (yellow, orange, green, blue, purple, brown). Scalable: add to BELT_TEMPLATE_KEYS.
+     * Normalize a belt or template name so each belt in the grading order
+     * maps to its own template.
      */
     private function normalizeBeltKey($beltName)
     {
         if ($beltName === null || $beltName === '') {
             return '';
         }
-        $normalized = strtolower(trim(preg_replace('/\s*belt\s*$/i', '', $beltName)));
-        $normalized = trim($normalized);
+        $normalized = strtolower(trim($beltName));
+        $normalized = preg_replace('/\bbelt\b/', ' ', $normalized);
+        $normalized = trim(preg_replace('/\s+/', ' ', $normalized));
         foreach (self::BELT_TEMPLATE_KEYS as $key) {
             if ($key === $normalized || str_contains($normalized, $key)) {
                 return $key;
@@ -830,17 +880,27 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
 
     public function templatesCreate()
     {
-        return view('admin.certificates.templates.create');
+        return view('admin.certificates.templates.create', [
+            'beltNames' => self::BELT_TEMPLATE_NAMES,
+            'selectedBelt' => old('belt_name'),
+        ]);
     }
 
     public function templatesStore(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required_unless:certificate_type,belt|nullable|string|max:255',
+            'belt_name' => 'required_if:certificate_type,belt|nullable|in:'.implode(',', self::BELT_TEMPLATE_NAMES),
             'description' => 'nullable|string',
             'certificate_type' => 'required|in:belt,competition',
             'background_image' => 'required|image|mimes:jpeg,jpg|max:5120', // 5MB max, required
         ]);
+
+        if ($request->certificate_type === 'belt' && $this->beltTemplateAlreadyUsed($request->belt_name)) {
+            return redirect()->back()->withInput()->withErrors([
+                'belt_name' => 'A template for '.$request->belt_name.' already exists.',
+            ]);
+        }
 
         try {
             $backgroundImagePath = null;
@@ -858,7 +918,7 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
             }
 
             CertificateTemplate::create([
-                'name' => $request->name,
+                'name' => $request->certificate_type === 'belt' ? $request->belt_name : $request->name,
                 'description' => $request->description,
                 'certificate_type' => $request->certificate_type,
                 'background_image' => $backgroundImagePath,
@@ -874,17 +934,39 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
     public function templatesEdit($id)
     {
         $template = CertificateTemplate::findOrFail($id);
-        return view('admin.certificates.templates.edit', compact('template'));
+        $selectedBelt = old('belt_name');
+        if ($selectedBelt === null && $template->certificate_type === 'belt') {
+            $currentKey = $this->normalizeBeltKey($template->name);
+            foreach (self::BELT_TEMPLATE_NAMES as $beltName) {
+                if ($this->normalizeBeltKey($beltName) === $currentKey) {
+                    $selectedBelt = $beltName;
+                    break;
+                }
+            }
+        }
+
+        return view('admin.certificates.templates.edit', [
+            'template' => $template,
+            'beltNames' => self::BELT_TEMPLATE_NAMES,
+            'selectedBelt' => $selectedBelt,
+        ]);
     }
 
     public function templatesUpdate(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required_unless:certificate_type,belt|nullable|string|max:255',
+            'belt_name' => 'required_if:certificate_type,belt|nullable|in:'.implode(',', self::BELT_TEMPLATE_NAMES),
             'description' => 'nullable|string',
             'certificate_type' => 'required|in:belt,competition',
             'background_image' => 'nullable|image|mimes:jpeg,jpg|max:5120',
         ]);
+
+        if ($request->certificate_type === 'belt' && $this->beltTemplateAlreadyUsed($request->belt_name, (int) $id)) {
+            return redirect()->back()->withInput()->withErrors([
+                'belt_name' => 'A template for '.$request->belt_name.' already exists.',
+            ]);
+        }
 
         try {
             $template = CertificateTemplate::findOrFail($id);
@@ -906,7 +988,7 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
             }
 
             $template->update([
-                'name' => $request->name,
+                'name' => $request->certificate_type === 'belt' ? $request->belt_name : $request->name,
                 'description' => $request->description,
                 'certificate_type' => $request->certificate_type,
             ]);

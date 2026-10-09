@@ -123,7 +123,15 @@
                 <h2 class="pend-page-title fw-bold mb-0">Pending Registrations</h2>
                 <p class="small mb-0" style="color:#5a7a66;">Unpaid registrations awaiting payment confirmation</p>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
+                <form method="POST" action="{{ route('admin.pending.sync-razorpay') }}" class="d-inline"
+                      onsubmit="return confirm('Check Razorpay and mark captured payments as paid?');">
+                    @csrf
+                    <input type="hidden" name="event_id" value="{{ $eventId ?? 'all' }}">
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="bi bi-arrow-repeat"></i> Sync paid from Razorpay
+                    </button>
+                </form>
                 @if(isset($eventId) && $eventId && $eventId !== 'all')
                     <a href="{{ route('admin.event.export.pending', ['eventId' => $eventId]) }}" 
                        class="btn btn-warning btn-sm text-dark fw-bold" 
@@ -134,6 +142,13 @@
                 <a href="{{ route('admin.registrations') }}" class="btn btn-outline-success btn-sm">← Back to All Registrations</a>
             </div>
         </div>
+
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
 
         <!-- Filters & Event Selector -->
         <div class="pend-filter-panel mb-4">
@@ -285,7 +300,7 @@
                                                                     <td>
                                                                         <span class="text-muted">{{ $reg->amount ? '₹' . number_format($reg->amount, 2) : 'Not set' }}</span>
                                                                     </td>
-                                                                    <td>{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                                                    <td>{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                                                     <td>
                                                                         <button type="button" class="btn btn-sm btn-success" 
                                                                                 onclick="openAmountModal({{ $reg->id }}, '{{ $reg->registration_code }}', '{{ addslashes($getField($reg->submitted_data, 'name')) }}', {{ $reg->amount ?? 0 }})">
@@ -336,7 +351,7 @@
                                                             <td>
                                                                 <span class="text-muted">{{ $reg->amount ? '₹' . number_format($reg->amount, 2) : 'Not set' }}</span>
                                                             </td>
-                                                            <td>{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                                            <td>{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                                             <td>
                                                                 <button type="button" class="btn btn-sm btn-success" 
                                                                         onclick="openAmountModal({{ $reg->id }}, '{{ $reg->registration_code }}', '{{ addslashes($getField($reg->submitted_data, 'name')) }}', {{ $reg->amount ?? 0 }})">

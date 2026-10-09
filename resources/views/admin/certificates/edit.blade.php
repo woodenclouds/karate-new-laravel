@@ -286,6 +286,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('event_title')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
+                            <div class="helper-text">Shows on: Certificates admin list and batch details page. Not printed on the PDF itself.</div>
                         </div>
 
                         <div class="form-group">
@@ -304,6 +305,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('event_date')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
+                            <div class="helper-text">Shows on: Certificates admin list, and as DATE OF REG on the PDF only if Excel has no Submitted At date.</div>
                         </div>
 
                         <div class="form-group">
@@ -326,7 +328,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('event_id')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">The certificate uses this event’s venue.</div>
+                            <div class="helper-text">Links this batch to an event so the venue can be copied for the certificate PLACE line.</div>
                         </div>
 
                         <div class="form-group">
@@ -336,7 +338,7 @@ use Illuminate\Support\Facades\Storage;
                                    id="venue_display"
                                    value="{{ $certificate->certificateVenue() }}"
                                    readonly>
-                            <div class="helper-text">Same spelling as the event. To change it, edit the event.</div>
+                            <div class="helper-text">Shows on: certificate PDF <strong>PLACE</strong> line (exact spelling). To change it, edit the event in Events.</div>
                         </div>
 
                         <div class="form-group">
@@ -354,9 +356,10 @@ use Illuminate\Support\Facades\Storage;
                             @error('certificate_type')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
+                            <div class="helper-text">Shows on: PDF layout — Belt prints REG. NO; Competition prints CATEGORY instead.</div>
                         </div>
 
-                        <p class="helper-text text-info" id="belt_template_helper" style="display: {{ $certificate->certificate_type === 'belt' ? 'block' : 'none' }};">For Belt events, the certificate template is chosen per participant from the Excel <strong>Next Belt</strong> column.</p>
+                        <p class="helper-text text-info" id="belt_template_helper" style="display: {{ $certificate->certificate_type === 'belt' ? 'block' : 'none' }};">For Belt events, each Next Belt uses its own template: White, Yellow, Orange, Green, Blue, Purple, Brown 4th Kyu, Brown 3rd Kyu, Brown 2nd Kyu, Brown 1st Kyu, Black Shodan.</p>
 
                         <div class="form-group" id="template_selection_group" style="display: {{ $certificate->certificate_type === 'competition' ? 'block' : 'none' }};">
                             <label class="form-label">
@@ -396,7 +399,7 @@ use Illuminate\Support\Facades\Storage;
                                     </div>
                                 @endforelse
                             </div>
-                            <div class="template-instruction">Click on a template to select it. The selected template will be highlighted.</div>
+                            <div class="template-instruction">Shows on: background image of every competition certificate PDF in this batch. Click a template to select it.</div>
                             @error('template_id')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
@@ -421,6 +424,15 @@ use Illuminate\Support\Facades\Storage;
                             <strong>Venue:</strong> {{ $certificate->certificateVenue() }}<br>
                             <strong>Type:</strong> {{ ucfirst($certificate->certificate_type) }}<br>
                             <strong>Participants:</strong> {{ $certificate->certificate_count }}
+                        </p>
+                    </div>
+
+                    <div class="info-box">
+                        <strong>Where updates reflect:</strong>
+                        <p>
+                            <strong>Event Title / Date</strong> → Certificates admin list &amp; details<br>
+                            <strong>Venue</strong> → PDF PLACE line (from Events)<br>
+                            <strong>Certificate Type / Template</strong> → PDF layout &amp; background
                         </p>
                     </div>
 

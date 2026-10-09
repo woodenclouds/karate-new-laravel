@@ -257,7 +257,27 @@
                     <form action="{{ route('admin.certificates.templates.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
 
-                        <div class="form-group">
+                        <div class="form-group" id="belt_name_group" style="display: none;">
+                            <label for="belt_name" class="form-label">
+                                Belt <span class="required">*</span>
+                            </label>
+                            <select class="form-control @error('belt_name') is-invalid @enderror"
+                                    id="belt_name"
+                                    name="belt_name">
+                                <option value="">Select belt</option>
+                                @foreach ($beltNames as $beltName)
+                                    <option value="{{ $beltName }}" {{ $selectedBelt === $beltName ? 'selected' : '' }}>
+                                        {{ $beltName }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('belt_name')
+                                <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
+                            @enderror
+                            <div class="helper-text">This template is used when the Excel Next Belt is this belt.</div>
+                        </div>
+
+                        <div class="form-group" id="name_group">
                             <label for="name" class="form-label">
                                 Template Name <span class="required">*</span>
                             </label>
@@ -266,12 +286,11 @@
                                    id="name" 
                                    name="name" 
                                    value="{{ old('name') }}" 
-                                   placeholder="e.g., Sports Certificate, Academic Award"
-                                   required>
+                                   placeholder="e.g., Sports Certificate, Academic Award">
                             @error('name')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">A descriptive name for this template</div>
+                            <div class="helper-text">Shows on: template list in admin. Used for competition certificates.</div>
                         </div>
 
                         <div class="form-group">
@@ -316,7 +335,7 @@
                             @error('background_image')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Upload a JPG image (max 5MB). This will be used as the certificate background.</div>
+                            <div class="helper-text">Shows on: certificate PDF as the full background design behind Name, Place, Reg. No / Category, and Date.</div>
                         </div>
 
                         <button type="submit" class="save-btn">
@@ -359,5 +378,18 @@
         </div>
     </div>
 </main>
+
+<script>
+    function toggleTemplateNameFields() {
+        var type = document.getElementById('certificate_type').value;
+        var isBelt = type === 'belt';
+        document.getElementById('belt_name_group').style.display = isBelt ? '' : 'none';
+        document.getElementById('name_group').style.display = isBelt ? 'none' : '';
+        document.getElementById('belt_name').required = isBelt;
+        document.getElementById('name').required = !isBelt;
+    }
+    document.getElementById('certificate_type').addEventListener('change', toggleTemplateNameFields);
+    toggleTemplateNameFields();
+</script>
 
 @include('admin.layout.footer')

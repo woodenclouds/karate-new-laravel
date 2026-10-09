@@ -7,6 +7,7 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use App\Models\Admin\belt;
+use App\Support\Ist;
 
 
 class RegistrationGroupSheet implements FromCollection, WithHeadings, WithTitle
@@ -78,7 +79,7 @@ class RegistrationGroupSheet implements FromCollection, WithHeadings, WithTitle
                     'School'      => $getVal('school'),
                     'Current Belt'=> $beltName,
                     'Next Belt'   => $nextBeltName,
-                    'Submitted At'=> $reg->created_at->format('d M Y h:i A'),
+                    'Submitted At'=> Ist::format($reg->created_at),
                 ];
 
                 if ($this->categoryType === 'competition') {

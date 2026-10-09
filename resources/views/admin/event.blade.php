@@ -362,6 +362,7 @@
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Title</label>
                         <input type="text" name="title" class="form-control" value="{{ $event->title }}">
+                        <div class="form-text">Shows on: public Events page, registration form, payment checkout, and admin lists.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Category</label>
@@ -373,35 +374,42 @@
                                 </option>
                             @endforeach
                         </select>
+                        <div class="form-text">Shows on: public Events page (category badge) and controls which registration form fields are used.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Event Date</label>
                         <input type="date" name="event_date" class="form-control"
                             value="{{ $event->event_date }}" required>
+                        <div class="form-text">Shows on: public Events page, registration PDF, and admin event lists.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Event Time</label>
                         <input type="time" name="event_time" class="form-control"
                             value="{{ $event->event_time }}">
+                        <div class="form-text">Shows on: public Events page and registration PDF.</div>
                     </div>
                     <div class="mb-3 col-12">
                         <label class="form-label">Venue</label>
                         <input type="text" name="venue" class="form-control"
                             value="{{ $event->venue }}" required>
+                        <div class="form-text">Shows on: public Events page, registration PDF, and certificate <strong>PLACE</strong> line (exact spelling).</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Registration Fee (INR)</label>
                         <input type="number" step="0.01" name="fee" class="form-control"
                             value="{{ $event->fee }}">
+                        <div class="form-text">Shows on: public Events page, registration form, and Razorpay checkout amount.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Additional Fee (INR)</label>
                         <input type="number" step="0.01" name="additional_fee"
                             class="form-control" value="{{ $event->additional_fee }}">
+                        <div class="form-text">Shows on: public Events page as Team Fee, and is added at registration when participation is team.</div>
                     </div>
                     <div class="mb-3 col-12">
                         <label class="form-label">Description</label>
                         <textarea name="description" class="form-control" rows="3">{{ $event->description }}</textarea>
+                        <div class="form-text">Shows on: public Events page event card.</div>
                     </div>
                     <div class="mb-3 col-12">
                         <div class="form-check">
@@ -459,6 +467,7 @@
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Title</label>
                         <input type="text" name="title" id="titleField" class="form-control">
+                        <div class="form-text">Shows on: public Events page, registration form, payment checkout, and admin lists.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Category</label>
@@ -468,32 +477,39 @@
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                             @endforeach
                         </select>
+                        <div class="form-text">Shows on: public Events page (category badge) and controls which registration form fields are used.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Event Date</label>
                         <input type="date" name="event_date" class="form-control" required>
+                        <div class="form-text">Shows on: public Events page, registration PDF, and admin event lists.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Event Time</label>
                         <input type="time" name="event_time" class="form-control">
+                        <div class="form-text">Shows on: public Events page and registration PDF.</div>
                     </div>
                     <div class="mb-3 col-12">
                         <label class="form-label">Venue</label>
                         <input type="text" name="venue" class="form-control" required>
+                        <div class="form-text">Shows on: public Events page, registration PDF, and certificate <strong>PLACE</strong> line (exact spelling).</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Registration Fee (INR)</label>
                         <input type="number" step="0.01" name="fee" class="form-control"
                             placeholder="e.g. 250.00">
+                        <div class="form-text">Shows on: public Events page, registration form, and Razorpay checkout amount.</div>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label">Additional Fee (INR)</label>
                         <input type="number" step="0.01" name="additional_fee" class="form-control"
                             placeholder="e.g. 50.00">
+                        <div class="form-text">Shows on: public Events page as Team Fee, and is added at registration when participation is team.</div>
                     </div>
                     <div class="mb-3 col-12">
                         <label class="form-label">Description</label>
                         <textarea name="description" class="form-control" rows="3"></textarea>
+                        <div class="form-text">Shows on: public Events page event card.</div>
                     </div>
                     <div class="mb-3 col-12">
                         <div class="form-check">

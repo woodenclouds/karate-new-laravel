@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Razorpay\Api\Api;
 use Illuminate\Support\Str;
+use App\Support\Ist;
 
 
 
@@ -205,10 +206,14 @@ class FormSubmissionController extends Controller
                 'payment_id' => $request->razorpay_payment_id,
                 'razorpay_order_id' => $request->razorpay_order_id,
             ];
+            $razorpayPaidAt = null;
             try {
                 $payment = $api->payment->fetch($request->razorpay_payment_id);
                 if ($payment && isset($payment->amount)) {
                     $updateData['amount'] = $payment->amount / 100;
+                }
+                if ($payment && isset($payment['created_at'])) {
+                    $razorpayPaidAt = Ist::format($payment['created_at']);
                 }
             } catch (\Exception $e) {
                 // If amount is already set from form submission, keep it
@@ -238,7 +243,9 @@ class FormSubmissionController extends Controller
             \Log::info('Payment successful', [
                 'registration_id' => $registration->id,
                 'payment_id' => $request->razorpay_payment_id,
-                'order_id' => $request->razorpay_order_id
+                'order_id' => $request->razorpay_order_id,
+                'razorpay_paid_at' => $razorpayPaidAt,
+                'logged_at' => Ist::format(now()),
             ]);
 
             // Redirect to success page
@@ -298,14 +305,20 @@ class FormSubmissionController extends Controller
         $payload = json_decode($webhookBody, true);
         $event = $payload['event'] ?? null;
         $payment = $payload['payload']['payment']['entity'] ?? null;
+        $orderEntity = $payload['payload']['order']['entity'] ?? null;
 
-        // Handle payment.captured event
-        if ($event === 'payment.captured' && $payment) {
-            $paymentId = $payment['id'];
-            $orderId = $payment['order_id'] ?? null;
+        if (in_array($event, ['payment.captured', 'order.paid'], true)) {
+            $paymentId = is_array($payment) ? ($payment['id'] ?? null) : null;
+            $orderId = (is_array($payment) ? ($payment['order_id'] ?? null) : null)
+                ?? (is_array($orderEntity) ? ($orderEntity['id'] ?? null) : null);
+            $amountPaise = (is_array($payment) ? ($payment['amount'] ?? null) : null)
+                ?? (is_array($orderEntity) ? ($orderEntity['amount_paid'] ?? null) : null);
 
             if (!$orderId) {
-                \Log::warning('Webhook: payment.captured event missing order_id', ['payment_id' => $paymentId]);
+                \Log::warning('Webhook: paid event missing order_id', [
+                    'event' => $event,
+                    'payment_id' => $paymentId,
+                ]);
                 return response()->json(['error' => 'Order ID missing'], 400);
             }
 
@@ -318,13 +331,15 @@ class FormSubmissionController extends Controller
             }
 
             // Update registration if not already updated
-            if ($registration->status !== 'paid' || $registration->payment_id !== $paymentId) {
+            if ($registration->status !== 'paid' || ($paymentId && $registration->payment_id !== $paymentId)) {
                 $webhookUpdateData = [
                     'status' => 'paid',
-                    'payment_id' => $paymentId,
                 ];
-                if (isset($payment['amount'])) {
-                    $webhookUpdateData['amount'] = $payment['amount'] / 100;
+                if ($paymentId) {
+                    $webhookUpdateData['payment_id'] = $paymentId;
+                }
+                if ($amountPaise !== null) {
+                    $webhookUpdateData['amount'] = $amountPaise / 100;
                 }
                 $registration->update($webhookUpdateData);
 
@@ -345,7 +360,9 @@ class FormSubmissionController extends Controller
                 \Log::info('Webhook: Payment updated via webhook', [
                     'registration_id' => $registration->id,
                     'payment_id' => $paymentId,
-                    'order_id' => $orderId
+                    'order_id' => $orderId,
+                    'razorpay_paid_at' => isset($payment['created_at']) ? Ist::format($payment['created_at']) : null,
+                    'logged_at' => Ist::format(now()),
                 ]);
             }
 

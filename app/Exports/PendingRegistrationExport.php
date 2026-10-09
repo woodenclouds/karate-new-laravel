@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use App\Support\Ist;
 use Carbon\Carbon;
 
 class PendingRegistrationExport implements FromCollection, WithEvents, WithStyles, WithCustomStartCell
@@ -159,7 +160,7 @@ class PendingRegistrationExport implements FromCollection, WithEvents, WithStyle
                 'Amount Pending'  => $calcAmount,
                 'Status'          => ucfirst($reg->status ?? 'pending'),
                 'Entered By'      => ucfirst($reg->entered_by ?? 'user'),
-                'Submitted At'    => Carbon::parse($reg->created_at)->format('d M Y h:i A'),
+                'Submitted At'    => Ist::format($reg->created_at),
             ];
         })->toArray();
 
@@ -219,54 +220,63 @@ class PendingRegistrationExport implements FromCollection, WithEvents, WithStyle
                 ]);
                 $rowIndex += 2;
 
-                // Row 4: Table Headers
-                $col = 'A';
-                foreach ($headers as $head) {
-                    $sheet->setCellValue($col . $rowIndex, $head);
-                    $col++;
-                }
-
-                $sheet->getStyle("A{$rowIndex}:{$lastColLetter}{$rowIndex}")->applyFromArray([
-                    'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'C0392B']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                ]);
-                $sheet->getRowDimension($rowIndex)->setRowHeight(24);
-                $rowIndex++;
-
-                // Data Rows
-                $startDataRow = $rowIndex;
                 $amountColLetter = 'I';
+                foreach ($this->recordsByClass() as $className => $rows) {
+                    $sheet->mergeCells("A{$rowIndex}:{$lastColLetter}{$rowIndex}");
+                    $sheet->setCellValue("A{$rowIndex}", $className.' ('.count($rows).')');
+                    $sheet->getStyle("A{$rowIndex}:{$lastColLetter}{$rowIndex}")->applyFromArray([
+                        'font' => ['bold' => true, 'size' => 13, 'color' => ['rgb' => 'FFFFFF']],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '922B21']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
+                    ]);
+                    $sheet->getRowDimension($rowIndex)->setRowHeight(22);
+                    $rowIndex++;
 
-                foreach ($this->records as $index => $rec) {
                     $col = 'A';
-                    foreach ($headers as $key) {
-                        if ($key === '#') {
-                            $sheet->setCellValue($col . $rowIndex, $index + 1);
-                            $sheet->getStyle($col . $rowIndex)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                        } elseif ($key === 'Amount Pending') {
-                            $amountColLetter = $col;
-                            $sheet->setCellValue($col . $rowIndex, $rec['Amount Pending'] ?? 0);
-                            $sheet->getStyle($col . $rowIndex)->getNumberFormat()->setFormatCode('₹#,##0.00');
-                        } else {
-                            $sheet->setCellValue($col . $rowIndex, $rec[$key] ?? '');
-                        }
+                    foreach ($headers as $head) {
+                        $sheet->setCellValue($col.$rowIndex, $head);
                         $col++;
                     }
-                    $rowIndex++;
-                }
-
-                $endDataRow = $rowIndex - 1;
-
-                if ($endDataRow >= $startDataRow) {
-                    $sheet->getStyle("A{$startDataRow}:{$lastColLetter}{$endDataRow}")->applyFromArray([
-                        'borders' => [
-                            'allBorders' => [
-                                'borderStyle' => Border::BORDER_THIN,
-                                'color' => ['rgb' => 'D0D0D0'],
-                            ],
-                        ],
+                    $sheet->getStyle("A{$rowIndex}:{$lastColLetter}{$rowIndex}")->applyFromArray([
+                        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'C0392B']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                     ]);
+                    $sheet->getRowDimension($rowIndex)->setRowHeight(24);
+                    $rowIndex++;
+
+                    $startDataRow = $rowIndex;
+                    foreach ($rows as $index => $rec) {
+                        $col = 'A';
+                        foreach ($headers as $key) {
+                            if ($key === '#') {
+                                $sheet->setCellValue($col.$rowIndex, $index + 1);
+                                $sheet->getStyle($col.$rowIndex)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                            } elseif ($key === 'Amount Pending') {
+                                $amountColLetter = $col;
+                                $sheet->setCellValue($col.$rowIndex, $rec['Amount Pending'] ?? 0);
+                                $sheet->getStyle($col.$rowIndex)->getNumberFormat()->setFormatCode('₹#,##0.00');
+                            } else {
+                                $sheet->setCellValue($col.$rowIndex, $rec[$key] ?? '');
+                            }
+                            $col++;
+                        }
+                        $rowIndex++;
+                    }
+
+                    $endDataRow = $rowIndex - 1;
+                    if ($endDataRow >= $startDataRow) {
+                        $sheet->getStyle("A{$startDataRow}:{$lastColLetter}{$endDataRow}")->applyFromArray([
+                            'borders' => [
+                                'allBorders' => [
+                                    'borderStyle' => Border::BORDER_THIN,
+                                    'color' => ['rgb' => 'D0D0D0'],
+                                ],
+                            ],
+                        ]);
+                    }
+
+                    $rowIndex++;
                 }
 
                 // Summary Row
@@ -301,5 +311,29 @@ class PendingRegistrationExport implements FromCollection, WithEvents, WithStyle
     public function styles(Worksheet $sheet)
     {
         return [];
+    }
+
+    private function recordsByClass(): array
+    {
+        $groups = [];
+        foreach (array_keys($this->classGroups) as $name) {
+            $groups[$name] = [];
+        }
+
+        $extra = [];
+        foreach ($this->records as $record) {
+            $class = $record['Class'] ?: 'N/A';
+            if (array_key_exists($class, $groups)) {
+                $groups[$class][] = $record;
+            } else {
+                $extra[$class][] = $record;
+            }
+        }
+
+        foreach ($extra as $class => $rows) {
+            $groups[$class] = $rows;
+        }
+
+        return array_filter($groups);
     }
 }
