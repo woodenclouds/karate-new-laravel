@@ -305,14 +305,20 @@ class FormSubmissionController extends Controller
         $payload = json_decode($webhookBody, true);
         $event = $payload['event'] ?? null;
         $payment = $payload['payload']['payment']['entity'] ?? null;
+        $orderEntity = $payload['payload']['order']['entity'] ?? null;
 
-        // Handle payment.captured event
-        if ($event === 'payment.captured' && $payment) {
-            $paymentId = $payment['id'];
-            $orderId = $payment['order_id'] ?? null;
+        if (in_array($event, ['payment.captured', 'order.paid'], true)) {
+            $paymentId = is_array($payment) ? ($payment['id'] ?? null) : null;
+            $orderId = (is_array($payment) ? ($payment['order_id'] ?? null) : null)
+                ?? (is_array($orderEntity) ? ($orderEntity['id'] ?? null) : null);
+            $amountPaise = (is_array($payment) ? ($payment['amount'] ?? null) : null)
+                ?? (is_array($orderEntity) ? ($orderEntity['amount_paid'] ?? null) : null);
 
             if (!$orderId) {
-                \Log::warning('Webhook: payment.captured event missing order_id', ['payment_id' => $paymentId]);
+                \Log::warning('Webhook: paid event missing order_id', [
+                    'event' => $event,
+                    'payment_id' => $paymentId,
+                ]);
                 return response()->json(['error' => 'Order ID missing'], 400);
             }
 
@@ -325,13 +331,15 @@ class FormSubmissionController extends Controller
             }
 
             // Update registration if not already updated
-            if ($registration->status !== 'paid' || $registration->payment_id !== $paymentId) {
+            if ($registration->status !== 'paid' || ($paymentId && $registration->payment_id !== $paymentId)) {
                 $webhookUpdateData = [
                     'status' => 'paid',
-                    'payment_id' => $paymentId,
                 ];
-                if (isset($payment['amount'])) {
-                    $webhookUpdateData['amount'] = $payment['amount'] / 100;
+                if ($paymentId) {
+                    $webhookUpdateData['payment_id'] = $paymentId;
+                }
+                if ($amountPaise !== null) {
+                    $webhookUpdateData['amount'] = $amountPaise / 100;
                 }
                 $registration->update($webhookUpdateData);
 

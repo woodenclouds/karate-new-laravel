@@ -323,49 +323,9 @@ class RazorpayController extends Controller
                 ], 404);
             }
 
-            // Check if payment is successful
-            $isPaymentSuccessful = false;
-            $successfulPaymentId = null;
-            $paymentAmount = null;
+            $paid = $this->paidDetailsFromOrder($api, $order);
 
-            // Check order status
-            if ($order['status'] === 'paid' || $order['amount_due'] == 0) {
-                $isPaymentSuccessful = true;
-            }
-
-            // Check payments
-            try {
-                $paymentsData = $api->order->fetch($request->order_id)->payments();
-                if (isset($paymentsData['items']) && is_array($paymentsData['items']) && count($paymentsData['items']) > 0) {
-                    foreach ($paymentsData['items'] as $payment) {
-                        if ($payment['status'] === 'captured' || ($payment['status'] === 'authorized' && isset($payment['captured']) && $payment['captured'])) {
-                            $isPaymentSuccessful = true;
-                            $successfulPaymentId = $payment['id'];
-                            $paymentAmount = $payment['amount'] / 100;
-                            break;
-                        }
-                    }
-                }
-            } catch (\Exception $e) {
-                // Try alternative method
-                if (isset($order['payments']) && is_array($order['payments'])) {
-                    foreach ($order['payments'] as $paymentId) {
-                        try {
-                            $payment = $api->payment->fetch($paymentId);
-                            if ($payment['status'] === 'captured' || ($payment['status'] === 'authorized' && isset($payment['captured']) && $payment['captured'])) {
-                                $isPaymentSuccessful = true;
-                                $successfulPaymentId = $payment['id'];
-                                $paymentAmount = $payment['amount'] / 100;
-                                break;
-                            }
-                        } catch (\Exception $e2) {
-                            continue;
-                        }
-                    }
-                }
-            }
-
-            if (!$isPaymentSuccessful) {
+            if (!$paid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment is not successful in Razorpay. Order status: ' . $order['status']
@@ -374,24 +334,12 @@ class RazorpayController extends Controller
 
             // Update registration if needed
             if ($registration->status !== 'paid') {
-                $updateData = [
-                    'status' => 'paid',
-                ];
-
-                if ($successfulPaymentId && (!$registration->payment_id || $registration->payment_id !== $successfulPaymentId)) {
-                    $updateData['payment_id'] = $successfulPaymentId;
-                }
-
-                if ($paymentAmount && (!$registration->amount || $registration->amount == 0)) {
-                    $updateData['amount'] = $paymentAmount;
-                }
-
-                $registration->update($updateData);
+                $this->markRegistrationPaid($registration, $paid);
 
                 \Log::info('Manually synced payment status', [
                     'registration_id' => $registration->id,
                     'order_id' => $request->order_id,
-                    'payment_id' => $successfulPaymentId,
+                    'payment_id' => $paid['payment_id'],
                     'logged_at' => Ist::format(now()),
                 ]);
 
@@ -417,6 +365,155 @@ class RazorpayController extends Controller
                 'message' => 'Error syncing payment: ' . $e->getMessage()
             ], 400);
         }
+    }
+
+    /**
+     * Ask Razorpay about pending registrations that already have an order id,
+     * and mark the captured ones as paid. Does not send registration emails.
+     */
+    public function reconcilePendingPayments(Request $request)
+    {
+        $eventId = $request->input('event_id');
+
+        $query = Registration::where('status', '!=', 'paid')
+            ->whereNotNull('razorpay_order_id')
+            ->where('razorpay_order_id', '!=', '');
+
+        if ($eventId && $eventId !== 'all') {
+            $query->where('event_id', $eventId);
+        }
+
+        $registrations = $query->get();
+        $updated = 0;
+        $stillUnpaid = 0;
+        $errors = 0;
+
+        try {
+            $api = new Api(config('services.razorpay.key'), config('services.razorpay.secret'));
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.pending', $this->pendingRedirectQuery($eventId))
+                ->with('error', 'Could not connect to Razorpay. Check the API keys and try again.');
+        }
+
+        set_time_limit(180);
+
+        foreach ($registrations as $registration) {
+            try {
+                $order = $api->order->fetch($registration->razorpay_order_id);
+                $paid = $this->paidDetailsFromOrder($api, $order);
+
+                if (!$paid) {
+                    $stillUnpaid++;
+                    continue;
+                }
+
+                $this->markRegistrationPaid($registration, $paid);
+                $updated++;
+
+                \Log::info('Reconciled pending registration from Razorpay', [
+                    'registration_id' => $registration->id,
+                    'order_id' => $registration->razorpay_order_id,
+                    'payment_id' => $paid['payment_id'],
+                    'logged_at' => Ist::format(now()),
+                ]);
+            } catch (\Exception $e) {
+                $errors++;
+                \Log::warning('Could not reconcile pending registration', [
+                    'registration_id' => $registration->id,
+                    'order_id' => $registration->razorpay_order_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $checked = $registrations->count();
+        $message = "Checked {$checked} pending registrations that have a Razorpay order. Marked {$updated} as paid. {$stillUnpaid} are still unpaid.";
+        if ($errors > 0) {
+            $message .= " {$errors} could not be checked.";
+        }
+
+        return redirect()
+            ->route('admin.pending', $this->pendingRedirectQuery($eventId))
+            ->with($errors > 0 && $updated === 0 ? 'error' : 'success', $message);
+    }
+
+    private function pendingRedirectQuery(mixed $eventId): array
+    {
+        if (!$eventId) {
+            return [];
+        }
+
+        return ['event_id' => $eventId];
+    }
+
+    /**
+     * A captured payment, or an order Razorpay already marks paid.
+     * amount_due of 0 is not enough on its own.
+     *
+     * @return array{payment_id: ?string, amount: ?float}|null
+     */
+    private function paidDetailsFromOrder(Api $api, $order): ?array
+    {
+        $captured = null;
+
+        try {
+            $paymentsData = $api->order->fetch($order['id'])->payments();
+            foreach ($paymentsData['items'] ?? [] as $payment) {
+                if (($payment['status'] ?? null) === 'captured') {
+                    $captured = $payment;
+                    break;
+                }
+            }
+        } catch (\Exception $e) {
+            foreach ($order['payments'] ?? [] as $paymentId) {
+                if (!is_string($paymentId)) {
+                    continue;
+                }
+                try {
+                    $payment = $api->payment->fetch($paymentId);
+                    if (($payment['status'] ?? null) === 'captured') {
+                        $captured = $payment;
+                        break;
+                    }
+                } catch (\Exception $e2) {
+                    continue;
+                }
+            }
+        }
+
+        if ($captured) {
+            return [
+                'payment_id' => $captured['id'] ?? null,
+                'amount' => isset($captured['amount']) ? $captured['amount'] / 100 : null,
+            ];
+        }
+
+        if (($order['status'] ?? null) === 'paid') {
+            return [
+                'payment_id' => null,
+                'amount' => isset($order['amount_paid']) ? $order['amount_paid'] / 100 : null,
+            ];
+        }
+
+        return null;
+    }
+
+    private function markRegistrationPaid(Registration $registration, array $paid): void
+    {
+        $updateData = [
+            'status' => 'paid',
+        ];
+
+        if (!empty($paid['payment_id']) && (!$registration->payment_id || $registration->payment_id !== $paid['payment_id'])) {
+            $updateData['payment_id'] = $paid['payment_id'];
+        }
+
+        if (!empty($paid['amount']) && (!$registration->amount || $registration->amount == 0)) {
+            $updateData['amount'] = $paid['amount'];
+        }
+
+        $registration->update($updateData);
     }
 
     private function registrationSnapshot(?Registration $registration): ?array
