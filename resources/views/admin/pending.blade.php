@@ -285,7 +285,7 @@
                                                                     <td>
                                                                         <span class="text-muted">{{ $reg->amount ? '₹' . number_format($reg->amount, 2) : 'Not set' }}</span>
                                                                     </td>
-                                                                    <td>{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                                                    <td>{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                                                     <td>
                                                                         <button type="button" class="btn btn-sm btn-success" 
                                                                                 onclick="openAmountModal({{ $reg->id }}, '{{ $reg->registration_code }}', '{{ addslashes($getField($reg->submitted_data, 'name')) }}', {{ $reg->amount ?? 0 }})">
@@ -336,7 +336,7 @@
                                                             <td>
                                                                 <span class="text-muted">{{ $reg->amount ? '₹' . number_format($reg->amount, 2) : 'Not set' }}</span>
                                                             </td>
-                                                            <td>{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                                            <td>{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                                             <td>
                                                                 <button type="button" class="btn btn-sm btn-success" 
                                                                         onclick="openAmountModal({{ $reg->id }}, '{{ $reg->registration_code }}', '{{ addslashes($getField($reg->submitted_data, 'name')) }}', {{ $reg->amount ?? 0 }})">

@@ -387,7 +387,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('event_title')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">This will appear in the green banner at the top.</div>
+                            <div class="helper-text">Shows on: Certificates admin list and batch details page (green header). Not printed on the PDF itself.</div>
                         </div>
 
                         <div class="form-group">
@@ -406,7 +406,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('event_date')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Date when the event was conducted.</div>
+                            <div class="helper-text">Shows on: Certificates admin list, and as DATE OF REG on the PDF only if Excel has no Submitted At date.</div>
                         </div>
 
                         <div class="form-group">
@@ -429,7 +429,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('event_id')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">The certificate uses this event’s venue.</div>
+                            <div class="helper-text">Links this batch to an event so the venue can be copied for the certificate PLACE line.</div>
                         </div>
 
                         <div class="form-group">
@@ -439,7 +439,7 @@ use Illuminate\Support\Facades\Storage;
                                    id="venue_display"
                                    value=""
                                    readonly>
-                            <div class="helper-text">Same spelling as the event. To change it, edit the event.</div>
+                            <div class="helper-text">Shows on: certificate PDF <strong>PLACE</strong> line (exact spelling). To change it, edit the event in Events.</div>
                         </div>
 
                         <div class="form-group">
@@ -457,7 +457,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('certificate_type')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Select the type of certificate to generate.</div>
+                            <div class="helper-text">Shows on: PDF layout — Belt prints REG. NO; Competition prints CATEGORY instead.</div>
                         </div>
 
                         <p class="helper-text text-info" id="belt_template_helper" style="display: none;">For Belt events, the certificate template is chosen automatically from each row’s <strong>Next Belt</strong> column in the Excel (Yellow → yellow template, Orange → orange template, etc.).</p>
@@ -500,7 +500,7 @@ use Illuminate\Support\Facades\Storage;
                                     </div>
                                 @endforelse
                             </div>
-                            <div class="template-instruction">Click on a template to select it. The selected template will be highlighted.</div>
+                            <div class="template-instruction">Shows on: background image of every competition certificate PDF in this batch. Click a template to select it.</div>
                             @error('template_id')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
@@ -519,7 +519,7 @@ use Illuminate\Support\Facades\Storage;
                             @error('excel_file')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Upload Excel file with participant details (XLSX or CSV)</div>
+                            <div class="helper-text">Shows on: PDF fields — Name, Reg. No, Date of Reg, Category/Rank. Venue always comes from the selected event, not Excel.</div>
                         </div>
 
                         <button type="submit" class="generate-btn">

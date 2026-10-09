@@ -313,7 +313,7 @@
                                         </td>
                                         <td><span class="badge-pending">Pending</span></td>
                                         <td>₹{{ number_format($reg->amount ?? 0, 2) }}</td>
-                                        <td>{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                        <td>{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                         <td>
                                             <div class="action-buttons">
                                                 <button type="button" class="btn btn-sm btn-success" 
@@ -440,7 +440,7 @@
                                         </td>
                                         <td><span class="badge-paid">Paid</span></td>
                                         <td>₹{{ number_format($reg->amount ?? 0, 2) }}</td>
-                                        <td>{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                        <td>{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                         <td>
                                             <div class="action-buttons">
                                                 <a href="{{ route('admin.certificate.layout', $reg->id) }}" 

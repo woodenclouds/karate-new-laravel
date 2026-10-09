@@ -152,7 +152,7 @@
                                                 {{ ucfirst($registration->status) }}
                                             </span>
                                         </td>
-                                        <td>{{ $registration->created_at->format('d M Y h:i A') }}</td>
+                                        <td>{{ \App\Support\Ist::format($registration->created_at) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -226,7 +226,7 @@
                                         <td>
                                             <span class="badge bg-info">{{ ucfirst($registration->entered_by ?? 'user') }}</span>
                                         </td>
-                                        <td>{{ $registration->created_at->format('d M Y h:i A') }}</td>
+                                        <td>{{ \App\Support\Ist::format($registration->created_at) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>

@@ -278,7 +278,7 @@
                             @error('name')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">A descriptive name for this template</div>
+                            <div class="helper-text">Shows on: template list in admin. For Belt templates, name should include the belt (e.g. Yellow, Orange) so it matches Excel Next Belt.</div>
                         </div>
 
                         <div class="form-group">
@@ -336,7 +336,7 @@
                             @error('background_image')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Upload a new JPG image (max 5MB) to replace the current one. Leave empty to keep current image.</div>
+                            <div class="helper-text">Shows on: certificate PDF as the full background design. Upload a new JPG (max 5MB) to replace; leave empty to keep the current image.</div>
                         </div>
 
                         <button type="submit" class="save-btn">

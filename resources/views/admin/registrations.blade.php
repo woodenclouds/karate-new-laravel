@@ -427,7 +427,7 @@
                                                                         <td>{{ $getField($reg->submitted_data, 'weight') }}</td>
                                                                         <td><span class="badge bg-success">Paid</span></td>
                                                                         <td><strong>₹{{ number_format($reg->amount ?? 0, 2) }}</strong></td>
-                                                                        <td class="text-muted small">{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                                                        <td class="text-muted small">{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                                                         <td>
                                                                             <div class="btn-group reg-action-group" role="group">
                                                                                 <a href="{{ route('admin.certificate.layout', $reg->id) }}" class="btn btn-sm btn-success" target="_blank" title="Certificate"><i class="bi bi-award"></i></a>
@@ -468,7 +468,7 @@
                                                             <td>{{ $getField($reg->submitted_data, 'class') }}</td>
                                                             <td><span class="badge bg-success">Paid</span></td>
                                                             <td><strong>₹{{ number_format($reg->amount ?? 0, 2) }}</strong></td>
-                                                            <td class="text-muted small">{{ $reg->created_at->format('d M Y h:i A') }}</td>
+                                                            <td class="text-muted small">{{ \App\Support\Ist::format($reg->created_at) }}</td>
                                                             <td>
                                                                 <div class="btn-group reg-action-group" role="group">
                                                                     <a href="{{ route('admin.certificate.layout', $reg->id) }}" class="btn btn-sm btn-success" target="_blank" title="Certificate"><i class="bi bi-award"></i></a>

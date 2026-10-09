@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Razorpay\Api\Api;
 use Illuminate\Support\Str;
+use App\Support\Ist;
 
 
 
@@ -205,10 +206,14 @@ class FormSubmissionController extends Controller
                 'payment_id' => $request->razorpay_payment_id,
                 'razorpay_order_id' => $request->razorpay_order_id,
             ];
+            $razorpayPaidAt = null;
             try {
                 $payment = $api->payment->fetch($request->razorpay_payment_id);
                 if ($payment && isset($payment->amount)) {
                     $updateData['amount'] = $payment->amount / 100;
+                }
+                if ($payment && isset($payment['created_at'])) {
+                    $razorpayPaidAt = Ist::format($payment['created_at']);
                 }
             } catch (\Exception $e) {
                 // If amount is already set from form submission, keep it
@@ -238,7 +243,9 @@ class FormSubmissionController extends Controller
             \Log::info('Payment successful', [
                 'registration_id' => $registration->id,
                 'payment_id' => $request->razorpay_payment_id,
-                'order_id' => $request->razorpay_order_id
+                'order_id' => $request->razorpay_order_id,
+                'razorpay_paid_at' => $razorpayPaidAt,
+                'logged_at' => Ist::format(now()),
             ]);
 
             // Redirect to success page
@@ -345,7 +352,9 @@ class FormSubmissionController extends Controller
                 \Log::info('Webhook: Payment updated via webhook', [
                     'registration_id' => $registration->id,
                     'payment_id' => $paymentId,
-                    'order_id' => $orderId
+                    'order_id' => $orderId,
+                    'razorpay_paid_at' => isset($payment['created_at']) ? Ist::format($payment['created_at']) : null,
+                    'logged_at' => Ist::format(now()),
                 ]);
             }
 

@@ -390,6 +390,14 @@
                                                         @endif
                                                     </td>
                                                 </tr>
+                                                <tr>
+                                                    <th>Submitted (system)</th>
+                                                    <td>{{ $result['registration']['submitted_at'] ?? '—' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Last updated (system)</th>
+                                                    <td>{{ $result['registration']['updated_at'] ?? '—' }}</td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>

@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use App\Support\Ist;
 use Carbon\Carbon;
 
 class PendingRegistrationExport implements FromCollection, WithEvents, WithStyles, WithCustomStartCell
@@ -159,7 +160,7 @@ class PendingRegistrationExport implements FromCollection, WithEvents, WithStyle
                 'Amount Pending'  => $calcAmount,
                 'Status'          => ucfirst($reg->status ?? 'pending'),
                 'Entered By'      => ucfirst($reg->entered_by ?? 'user'),
-                'Submitted At'    => Carbon::parse($reg->created_at)->format('d M Y h:i A'),
+                'Submitted At'    => Ist::format($reg->created_at),
             ];
         })->toArray();
 

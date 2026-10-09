@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Registration;
 use App\Models\Admin\Event;
+use App\Support\Ist;
 use Razorpay\Api\Api;
 
 class RazorpayController extends Controller
@@ -64,18 +65,10 @@ class RazorpayController extends Controller
                         'currency' => $order['currency'],
                         'status' => $order['status'],
                         'receipt' => $order['receipt'] ?? 'N/A',
-                        'created_at' => date('Y-m-d H:i:s', $order['created_at']),
+                        'created_at' => $this->formatRazorpayTime($order['created_at']),
                     ],
                     'payments' => [],
-                    'registration' => $registration ? [
-                        'id' => $registration->id,
-                        'registration_code' => $registration->registration_code,
-                        'status' => $registration->status,
-                        'payment_id' => $registration->payment_id,
-                        'amount' => $registration->amount,
-                        'event_id' => $registration->event_id,
-                        'event' => $registration->event ? $registration->event->title : null,
-                    ] : null,
+                    'registration' => $this->registrationSnapshot($registration),
                 ];
 
                 // Fetch payments for this order - try multiple methods
@@ -100,9 +93,9 @@ class RazorpayController extends Controller
                                 'error_code' => $payment['error_code'] ?? null,
                                 'error_description' => $payment['error_description'] ?? null,
                                 'error_reason' => $payment['error_reason'] ?? null,
-                                'created_at' => date('Y-m-d H:i:s', $payment['created_at']),
-                                'authorized_at' => isset($payment['authorized_at']) ? date('Y-m-d H:i:s', $payment['authorized_at']) : null,
-                                'captured_at' => isset($payment['captured_at']) ? date('Y-m-d H:i:s', $payment['captured_at']) : null,
+                                'created_at' => $this->formatRazorpayTime($payment['created_at']),
+                                'authorized_at' => $this->formatRazorpayTime($payment['authorized_at'] ?? null),
+                                'captured_at' => $this->formatRazorpayTime($payment['captured_at'] ?? null),
                             ];
                         }
                     }
@@ -128,9 +121,9 @@ class RazorpayController extends Controller
                                     'error_code' => $payment['error_code'] ?? null,
                                     'error_description' => $payment['error_description'] ?? null,
                                     'error_reason' => $payment['error_reason'] ?? null,
-                                    'created_at' => date('Y-m-d H:i:s', $payment['created_at']),
-                                    'authorized_at' => isset($payment['authorized_at']) ? date('Y-m-d H:i:s', $payment['authorized_at']) : null,
-                                    'captured_at' => isset($payment['captured_at']) ? date('Y-m-d H:i:s', $payment['captured_at']) : null,
+                                    'created_at' => $this->formatRazorpayTime($payment['created_at']),
+                                    'authorized_at' => $this->formatRazorpayTime($payment['authorized_at'] ?? null),
+                                    'captured_at' => $this->formatRazorpayTime($payment['captured_at'] ?? null),
                                 ];
                             } catch (\Exception $e2) {
                                 // Skip if payment fetch fails
@@ -154,9 +147,9 @@ class RazorpayController extends Controller
                             'error_code' => $payment['error_code'] ?? null,
                             'error_description' => $payment['error_description'] ?? null,
                             'error_reason' => $payment['error_reason'] ?? null,
-                            'created_at' => date('Y-m-d H:i:s', $payment['created_at']),
-                            'authorized_at' => isset($payment['authorized_at']) ? date('Y-m-d H:i:s', $payment['authorized_at']) : null,
-                            'captured_at' => isset($payment['captured_at']) ? date('Y-m-d H:i:s', $payment['captured_at']) : null,
+                            'created_at' => $this->formatRazorpayTime($payment['created_at']),
+                            'authorized_at' => $this->formatRazorpayTime($payment['authorized_at'] ?? null),
+                            'captured_at' => $this->formatRazorpayTime($payment['captured_at'] ?? null),
                         ];
                     } catch (\Exception $e2) {
                         // Payment fetch failed
@@ -213,19 +206,11 @@ class RazorpayController extends Controller
                             'registration_id' => $registration->id,
                             'order_id' => $orderId,
                             'payment_id' => $successfulPaymentId,
-                            'updated_fields' => array_keys($updateData)
+                            'updated_fields' => array_keys($updateData),
+                            'logged_at' => Ist::format(now()),
                         ]);
 
-                        // Update result with fresh registration data
-                        $result['registration'] = [
-                            'id' => $registration->id,
-                            'registration_code' => $registration->registration_code,
-                            'status' => $registration->status,
-                            'payment_id' => $registration->payment_id,
-                            'amount' => $registration->amount,
-                            'event_id' => $registration->event_id,
-                            'event' => $registration->event ? $registration->event->title : null,
-                        ];
+                        $result['registration'] = $this->registrationSnapshot($registration);
 
                         // Add success message
                         $result['auto_updated'] = true;
@@ -407,6 +392,7 @@ class RazorpayController extends Controller
                     'registration_id' => $registration->id,
                     'order_id' => $request->order_id,
                     'payment_id' => $successfulPaymentId,
+                    'logged_at' => Ist::format(now()),
                 ]);
 
                 return response()->json([
@@ -431,5 +417,33 @@ class RazorpayController extends Controller
                 'message' => 'Error syncing payment: ' . $e->getMessage()
             ], 400);
         }
+    }
+
+    private function registrationSnapshot(?Registration $registration): ?array
+    {
+        if (!$registration) {
+            return null;
+        }
+
+        return [
+            'id' => $registration->id,
+            'registration_code' => $registration->registration_code,
+            'status' => $registration->status,
+            'payment_id' => $registration->payment_id,
+            'amount' => $registration->amount,
+            'event_id' => $registration->event_id,
+            'event' => $registration->event ? $registration->event->title : null,
+            'submitted_at' => Ist::format($registration->created_at),
+            'updated_at' => Ist::format($registration->updated_at),
+        ];
+    }
+
+    private function formatRazorpayTime(mixed $timestamp): ?string
+    {
+        if ($timestamp === null || $timestamp === '') {
+            return null;
+        }
+
+        return Ist::format($timestamp);
     }
 }

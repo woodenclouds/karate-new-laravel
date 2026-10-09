@@ -15,6 +15,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Razorpay\Api\Api;
+use App\Support\Ist;
 use Carbon\Carbon;
 
 class RegistrationExport implements FromCollection, WithEvents, WithStyles, WithCustomStartCell
@@ -189,7 +190,7 @@ class RegistrationExport implements FromCollection, WithEvents, WithStyles, With
                 'Team/Individual' => $teamType,
                 'Amount Paid'     => $amountPaid,
                 'Entered By'      => ucfirst($reg->entered_by ?? 'user'),
-                'Submitted At'    => Carbon::parse($reg->created_at)->format('d M Y h:i A'),
+                'Submitted At'    => Ist::format($reg->created_at),
             ];
         })->toArray();
 
