@@ -359,7 +359,7 @@ use Illuminate\Support\Facades\Storage;
                             <div class="helper-text">Shows on: PDF layout — Belt prints REG. NO; Competition prints CATEGORY instead.</div>
                         </div>
 
-                        <p class="helper-text text-info" id="belt_template_helper" style="display: {{ $certificate->certificate_type === 'belt' ? 'block' : 'none' }};">For Belt events, the certificate template is chosen per participant from the Excel <strong>Next Belt</strong> column.</p>
+                        <p class="helper-text text-info" id="belt_template_helper" style="display: {{ $certificate->certificate_type === 'belt' ? 'block' : 'none' }};">For Belt events, each Next Belt uses its own template: White, Yellow, Orange, Green, Blue, Purple, Brown 4th Kyu, Brown 3rd Kyu, Brown 2nd Kyu, Brown 1st Kyu, Black Shodan.</p>
 
                         <div class="form-group" id="template_selection_group" style="display: {{ $certificate->certificate_type === 'competition' ? 'block' : 'none' }};">
                             <label class="form-label">

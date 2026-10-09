@@ -460,7 +460,7 @@ use Illuminate\Support\Facades\Storage;
                             <div class="helper-text">Shows on: PDF layout — Belt prints REG. NO; Competition prints CATEGORY instead.</div>
                         </div>
 
-                        <p class="helper-text text-info" id="belt_template_helper" style="display: none;">For Belt events, the certificate template is chosen automatically from each row’s <strong>Next Belt</strong> column in the Excel (Yellow → yellow template, Orange → orange template, etc.).</p>
+                        <p class="helper-text text-info" id="belt_template_helper" style="display: none;">For Belt events, each Next Belt uses its own template, in this order: White, Yellow, Orange, Green, Blue, Purple, Brown 4th Kyu, Brown 3rd Kyu, Brown 2nd Kyu, Brown 1st Kyu, Black Shodan. Name the template with that belt (for example “Brown Belt 4th Kyu”).</p>
 
                         <div class="form-group" id="template_selection_group" style="display: none;">
                             <label class="form-label">
@@ -541,7 +541,7 @@ use Illuminate\Support\Facades\Storage;
                             <li><strong>Class</strong> - Age group/Class</li>
                             <li><strong>School</strong> - School name (not printed as the certificate venue)</li>
                             <li><strong>Current Belt</strong> (Belt events) - e.g. Yellow, Orange</li>
-                            <li><strong>Next Belt</strong> (Belt events) - <span class="important-tag">Required</span> per row; used to pick template (Yellow, Orange, Green, Blue, Purple, Brown)</li>
+                            <li><strong>Next Belt</strong> (Belt events) - <span class="important-tag">Required</span> per row; picks that belt’s template (White through Black Shodan, including each Brown Kyu)</li>
                             <li><strong>Participation</strong> - Event type</li>
                             <li><strong>Gender</strong> - Boys/Girls</li>
                             <li><strong>Payment Status</strong> - paid/unpaid</li>
