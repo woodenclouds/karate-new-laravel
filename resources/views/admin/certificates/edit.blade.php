@@ -351,15 +351,19 @@ use Illuminate\Support\Facades\Storage;
                                     required>
                                 <option value="">Select Type</option>
                                 <option value="belt" {{ old('certificate_type', $certificate->certificate_type) === 'belt' ? 'selected' : '' }}>Belt Certificate</option>
+                                <option value="intro_school" {{ old('certificate_type', $certificate->certificate_type) === 'intro_school' ? 'selected' : '' }}>Intro School (1st–3rd + Participation)</option>
+                                <option value="championship" {{ old('certificate_type', $certificate->certificate_type) === 'championship' ? 'selected' : '' }}>Championship (1st–3rd + Participation)</option>
                                 <option value="competition" {{ old('certificate_type', $certificate->certificate_type) === 'competition' ? 'selected' : '' }}>Competition Certificate</option>
                             </select>
                             @error('certificate_type')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Shows on: PDF layout — Belt prints REG. NO; Competition prints CATEGORY instead.</div>
+                            <div class="helper-text">Shows on: PDF layout — Belt prints REG. NO; Intro School & Championship auto-match by Placement (1st, 2nd, 3rd, Participation).</div>
                         </div>
 
-                        <p class="helper-text text-info" id="belt_template_helper" style="display: {{ $certificate->certificate_type === 'belt' ? 'block' : 'none' }};">For Belt events, each Next Belt uses its own template: White, Yellow, Orange, Green, Blue, Purple, Brown 4th Kyu, Brown 3rd Kyu, Brown 2nd Kyu, Brown 1st Kyu, Black Shodan.</p>
+                        <p class="helper-text text-info" id="belt_template_helper" style="display: {{ $certificate->certificate_type === 'belt' ? 'block' : 'none' }};">For Belt events, each Next Belt uses its own template (White, Yellow, Orange, etc.). System picks the matching template automatically.</p>
+                        <p class="helper-text text-warning" id="intro_school_template_helper" style="display: {{ $certificate->certificate_type === 'intro_school' ? 'block' : 'none' }};">For Intro School events, the system reads each participant's Result/Placement column (1st, 2nd, 3rd, Participation) and picks the matching background template automatically.</p>
+                        <p class="helper-text text-danger" id="championship_template_helper" style="display: {{ $certificate->certificate_type === 'championship' ? 'block' : 'none' }};">For Championship events, the system reads each participant's Result/Placement column (1st, 2nd, 3rd, Participation) and picks the matching background template automatically.</p>
 
                         <div class="form-group" id="template_selection_group" style="display: {{ $certificate->certificate_type === 'competition' ? 'block' : 'none' }};">
                             <label class="form-label">
@@ -474,13 +478,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const certType = document.getElementById('certificate_type').value;
         const group = document.getElementById('template_selection_group');
         const beltHelper = document.getElementById('belt_template_helper');
+        const introHelper = document.getElementById('intro_school_template_helper');
+        const champHelper = document.getElementById('championship_template_helper');
+
+        if (beltHelper) beltHelper.style.display = (certType === 'belt') ? 'block' : 'none';
+        if (introHelper) introHelper.style.display = (certType === 'intro_school') ? 'block' : 'none';
+        if (champHelper) champHelper.style.display = (certType === 'championship') ? 'block' : 'none';
+
         if (certType === 'competition') {
             if (group) group.style.display = 'block';
-            if (beltHelper) beltHelper.style.display = 'none';
             hiddenInput.setAttribute('required', 'required');
         } else {
             if (group) group.style.display = 'none';
-            if (beltHelper) beltHelper.style.display = 'block';
             hiddenInput.removeAttribute('required');
             hiddenInput.value = '';
         }
@@ -503,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('certificateForm');
     form.addEventListener('submit', function(e) {
         const certType = document.getElementById('certificate_type').value;
-        if (certType !== 'belt' && !hiddenInput.value) {
+        if (certType === 'competition' && !hiddenInput.value) {
             e.preventDefault();
             alert('Please select a certificate template.');
             return false;

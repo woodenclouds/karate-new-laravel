@@ -143,9 +143,11 @@
                     @php
                         $fieldName = "fields[{$field->id}]";
                         $label = $field->label;
-                        $required = $field->required ? 'required' : '';
-                        $options = $field->options ? json_decode($field->options) : [];
                         $type = $field->type;
+                        $isEmailField = $type === 'email' || Str::contains(strtolower($label), 'email');
+                        $isRequired = $field->required || $isEmailField;
+                        $required = $isRequired ? 'required' : '';
+                        $options = $field->options ? json_decode($field->options) : [];
                         $inputType = $type;
 
                         $validationAttrs = '';
@@ -154,7 +156,7 @@
                             $validationAttrs =
                                 'pattern="[0-9]{10}" maxlength="10" title="Enter a 10-digit phone number"';
                         }
-                        if ($type === 'email') {
+                        if ($isEmailField) {
                             $validationAttrs =
                                 'pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Enter a valid email address"';
                         }
@@ -164,7 +166,7 @@
                     @endphp
 
                     <div class="col-md-6">
-                        <label class="form-label">{{ $label }}</label>
+                        <label class="form-label">{{ $label }}@if($isRequired) <span class="text-danger">*</span>@endif</label>
 
                         @if (in_array($type, ['text', 'email', 'number', 'tel']))
                             <input type="{{ $type }}" name="{{ $fieldName }}" class="form-control"

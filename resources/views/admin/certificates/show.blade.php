@@ -122,12 +122,34 @@
                         <p><strong>Title:</strong> {{ $certificate->event_title }}</p>
                         <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($certificate->event_date)->format('d M Y') }}</p>
                         <p><strong>Venue:</strong> {{ $certificate->certificateVenue() }}</p>
+                        @php
+                            $typeBadges = [
+                                'belt' => ['class' => 'bg-primary', 'text' => 'Belt Certificate'],
+                                'intro_school' => ['class' => 'bg-warning text-dark', 'text' => 'Intro School'],
+                                'championship' => ['class' => 'bg-danger', 'text' => 'Championship'],
+                                'competition' => ['class' => 'bg-success', 'text' => 'Competition'],
+                            ];
+                            $sBadge = $typeBadges[$certificate->certificate_type] ?? ['class' => 'bg-secondary', 'text' => ucfirst(str_replace('_', ' ', $certificate->certificate_type))];
+                        @endphp
                         <p><strong>Type:</strong> 
-                            <span class="badge bg-{{ $certificate->certificate_type === 'belt' ? 'info' : 'success' }}">
-                                {{ ucfirst($certificate->certificate_type) }}
+                            <span class="badge {{ $sBadge['class'] }}">
+                                {{ $sBadge['text'] }}
                             </span>
                         </p>
-                        <p><strong>Template:</strong> {{ $certificate->template->name ?? 'Per-belt / No Template' }}</p>
+                        @php
+                            $typeNames = [
+                                'belt' => 'Belt Certificate (Auto-matched by Belt)',
+                                'intro_school' => 'Intro School (Auto-matched by Placement)',
+                                'championship' => 'Championship (Auto-matched by Placement)',
+                                'competition' => 'Competition Certificate',
+                            ];
+                        @endphp
+                        <p><strong>Certificate Type:</strong> {{ $typeNames[$certificate->certificate_type] ?? ucfirst($certificate->certificate_type) }}</p>
+                        @if($certificate->certificate_type === 'competition')
+                            <p><strong>Template:</strong> {{ $certificate->template->name ?? 'No Template' }}</p>
+                        @else
+                            <p><strong>Template Mode:</strong> Dynamic Auto-Matching</p>
+                        @endif
                         <p><strong>Total Participants:</strong> {{ $certificate->certificate_count }}</p>
                     </div>
                 </div>
@@ -145,6 +167,11 @@
                                     <tr>
                                         <th>Reg ID</th>
                                         <th>Name</th>
+                                        @if(in_array($certificate->certificate_type, ['intro_school', 'championship']))
+                                            <th>Placement</th>
+                                        @elseif($certificate->certificate_type === 'belt')
+                                            <th>Belt</th>
+                                        @endif
                                         <th>Place</th>
                                         <th>Date of Reg</th>
                                         <th>Action</th>
@@ -155,6 +182,19 @@
                                         <tr>
                                             <td>{{ $participant['registration_id'] ?? '-' }}</td>
                                             <td>{{ $participant['name'] ?? '-' }}</td>
+                                            @if(in_array($certificate->certificate_type, ['intro_school', 'championship']))
+                                                <td>
+                                                    <span class="badge {{ ($participant['placement_key'] ?? '') === '1st' ? 'bg-warning text-dark' : (($participant['placement_key'] ?? '') === '2nd' ? 'bg-secondary' : (($participant['placement_key'] ?? '') === '3rd' ? 'bg-danger' : 'bg-info')) }}">
+                                                        {{ $participant['placement'] ?? 'Participation' }}
+                                                    </span>
+                                                </td>
+                                            @elseif($certificate->certificate_type === 'belt')
+                                                <td>
+                                                    <span class="badge bg-primary">
+                                                        {{ $participant['next_belt'] ?? ($participant['current_belt'] ?? '-') }}
+                                                    </span>
+                                                </td>
+                                            @endif
                                             <td>{{ $certificate->certificateVenue() !== '' ? $certificate->certificateVenue() : '-' }}</td>
                                             <td>
                                                 @if(!empty($participant['date_of_reg']))
@@ -178,7 +218,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center">No participants found</td>
+                                            <td colspan="6" class="text-center">No participants found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

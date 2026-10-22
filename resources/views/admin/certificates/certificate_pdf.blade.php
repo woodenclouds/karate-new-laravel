@@ -13,7 +13,7 @@
         @page {
             margin: 0;
             padding: 0;
-            size: {{ (isset($certType) && $certType === 'competition') || (isset($certificate->certificate_type) && strtolower($certificate->certificate_type) === 'competition') ? '21cm 29.7cm' : '24cm 33cm' }};
+            size: {{ (isset($certType) && in_array($certType, ['competition', 'intro_school', 'championship'])) || (isset($certificate->certificate_type) && in_array(strtolower($certificate->certificate_type), ['competition', 'intro_school', 'championship'])) ? '21cm 29.7cm' : '24cm 33cm' }};
         }
 
         html, body {
@@ -37,7 +37,9 @@
 
         /* Certificate Dimensions fill 100% of the exact @page */
         .certificate-belt,
-        .certificate-competition {
+        .certificate-competition,
+        .certificate-intro_school,
+        .certificate-championship {
             width: 100%;
             height: 100%;
         }
@@ -179,6 +181,82 @@
             max-width: 13cm;
             overflow: hidden;
             text-align: left;
+        }
+
+        /* ============================================
+           CHAMPIONSHIP & INTRO SCHOOL POSITIONING
+           Tailored to the MSMA Karate Merit / Participation Design
+           ============================================ */
+        .certificate-championship .field-name,
+        .certificate-intro_school .field-name {
+            top: 11.8cm;
+            left: 6.6cm;
+            width: 12.0cm;
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #000;
+            max-width: 12.0cm;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .certificate-championship .field-category,
+        .certificate-intro_school .field-category {
+            top: 15.8cm;
+            left: 5.6cm;
+            width: 13.0cm;
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #000;
+            max-width: 13.0cm;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .certificate-championship .field-date-reg,
+        .certificate-intro_school .field-date-reg {
+            top: 17.3cm;
+            left: 3.2cm;
+            width: 5.5cm;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #000;
+            max-width: 5.5cm;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .certificate-championship .field-place,
+        .certificate-intro_school .field-place {
+            top: 17.3cm;
+            left: 9.8cm;
+            width: 8.8cm;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #000;
+            max-width: 8.8cm;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .certificate-championship .field-placed-in,
+        .certificate-intro_school .field-placed-in {
+            top: 18.6cm;
+            left: 8.2cm;
+            width: 9.8cm;
+            font-size: 13pt;
+            font-weight: bold;
+            color: #000;
+            max-width: 9.8cm;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .certificate-championship .field-reg-no,
+        .certificate-intro_school .field-reg-no {
+            display: none;
         }
     </style>
 </head>

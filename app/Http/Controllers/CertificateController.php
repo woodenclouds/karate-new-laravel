@@ -34,6 +34,16 @@ class CertificateController extends Controller
         'Black Shodan',
     ];
 
+    public const PLACEMENT_TEMPLATE_NAMES = [
+        '1st Place',
+        '2nd Place',
+        '3rd Place',
+        'Participation',
+    ];
+
+    public const INTRO_SCHOOL_TEMPLATE_NAMES = self::PLACEMENT_TEMPLATE_NAMES;
+    public const CHAMPIONSHIP_TEMPLATE_NAMES = self::PLACEMENT_TEMPLATE_NAMES;
+
     private const BELT_TEMPLATE_KEYS = [
         'brown 4th kyu',
         'brown 3rd kyu',
@@ -49,8 +59,14 @@ class CertificateController extends Controller
         'brown',
     ];
 
-    /** Cached belt templates for current request (id => CertificateTemplate) */
+    /** Cached belt templates for current request (key => CertificateTemplate) */
     private $beltTemplateCache = null;
+
+    /** Cached intro school templates for current request (placement_key => CertificateTemplate) */
+    private $introSchoolTemplateCache = null;
+
+    /** Cached championship templates for current request (placement_key => CertificateTemplate) */
+    private $championshipTemplateCache = null;
     /**
      * Display a listing of certificate events
      */
@@ -80,7 +96,7 @@ class CertificateController extends Controller
             'event_id' => 'required|exists:event,id',
             'event_title' => 'required|string|max:255',
             'event_date' => 'required|date',
-            'certificate_type' => 'required|in:belt,competition',
+            'certificate_type' => 'required|in:belt,competition,intro_school,championship',
             'excel_file' => 'required|file|mimes:xlsx,csv|max:10240', // 10MB max
         ];
         if ($certificateType === 'competition') {
@@ -190,7 +206,7 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
             'event_id' => 'required|exists:event,id',
             'event_title' => 'required|string|max:255',
             'event_date' => 'required|date',
-            'certificate_type' => 'required|in:belt,competition',
+            'certificate_type' => 'required|in:belt,competition,intro_school,championship',
         ];
         if ($certificateType === 'competition') {
             $rules['template_id'] = 'required|exists:tbl_certificate_templates,id';
@@ -246,8 +262,8 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
         $certificateType = strtolower($certificate->certificate_type ?? 'belt');
         // Exact 72 DPI PDF points: 1 cm = 28.3464567 pt
         // Belt Certificate (24cm x 33cm): 680.315 pt x 935.433 pt
-        // Competition Certificate (21cm x 29.7cm / A4): 595.276 pt x 841.89 pt
-        $paperSize = $certificateType === 'competition'
+        // A4 Portrait (21cm x 29.7cm): 595.276 pt x 841.89 pt (Competition, Intro School, Championship)
+        $paperSize = in_array($certificateType, ['competition', 'intro_school', 'championship'], true)
             ? [0, 0, 595.276, 841.89]
             : [0, 0, 680.315, 935.433];
 
@@ -278,7 +294,7 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
         }
 
         $certificateType = strtolower($certificate->certificate_type ?? 'belt');
-        $paperSize = $certificateType === 'competition'
+        $paperSize = in_array($certificateType, ['competition', 'intro_school', 'championship'], true)
             ? [0, 0, 595.276, 841.89]
             : [0, 0, 680.315, 935.433];
 
@@ -361,19 +377,34 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
             $resolved = $this->resolveParticipantBelts($participant);
             $template = $this->getTemplateForParticipant($certificate, $resolved);
 
-            if (!$template && $certificateType === 'belt') {
-                Log::warning('Certificate generation: skipping participant - no template for belt', [
-                    'name' => $resolved['name'] ?? null,
-                    'next_belt' => $resolved['next_belt'] ?? null,
-                    'current_belt' => $resolved['current_belt'] ?? null,
-                ]);
-                $skipped[] = [
-                    'row' => $resolved['registration_id'] ?? null,
-                    'name' => $resolved['name'] ?? 'unknown',
-                    'reason' => 'No matching belt template for "'
-                        . ($resolved['next_belt'] ?: $resolved['current_belt'] ?: 'unknown') . '"',
-                ];
-                continue;
+            if (!$template) {
+                if ($certificateType === 'belt') {
+                    Log::warning('Certificate generation: skipping participant - no template for belt', [
+                        'name' => $resolved['name'] ?? null,
+                        'next_belt' => $resolved['next_belt'] ?? null,
+                        'current_belt' => $resolved['current_belt'] ?? null,
+                    ]);
+                    $skipped[] = [
+                        'row' => $resolved['registration_id'] ?? null,
+                        'name' => $resolved['name'] ?? 'unknown',
+                        'reason' => 'No matching belt template for "'
+                            . ($resolved['next_belt'] ?: $resolved['current_belt'] ?: 'unknown') . '"',
+                    ];
+                    continue;
+                } elseif (in_array($certificateType, ['intro_school', 'championship'], true)) {
+                    $placement = $resolved['placement'] ?? 'Participation';
+                    Log::warning('Certificate generation: skipping participant - no template for placement', [
+                        'certificate_type' => $certificateType,
+                        'placement' => $placement,
+                        'name' => $resolved['name'] ?? null,
+                    ]);
+                    $skipped[] = [
+                        'row' => $resolved['registration_id'] ?? null,
+                        'name' => $resolved['name'] ?? 'unknown',
+                        'reason' => 'No matching ' . ucwords(str_replace('_', ' ', $certificateType)) . ' template for placement "' . $placement . '"',
+                    ];
+                    continue;
+                }
             }
 
             $items[] = [
@@ -446,6 +477,10 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                             $columnMap['school'] = $colIndex;
                         } elseif (str_contains($headerLower, 'submitted') || str_contains($headerLower, 'date of reg') || str_contains($headerLower, '登録日')) {
                             $columnMap['date_of_reg'] = $colIndex;
+                        } elseif (str_contains($headerLower, 'placement') || str_contains($headerLower, 'result') || str_contains($headerLower, 'position') || str_contains($headerLower, 'prize') || str_contains($headerLower, 'merit')) {
+                            $columnMap['placement'] = $colIndex;
+                        } elseif (str_contains($headerLower, 'placed in') || str_contains($headerLower, 'placed_in') || str_contains($headerLower, 'sub event') || str_contains($headerLower, 'kumite') || str_contains($headerLower, 'kata') || str_contains($headerLower, 'item')) {
+                            $columnMap['placed_in'] = $colIndex;
                         } elseif (str_contains($headerLower, 'rank')) {
                             $columnMap['rank'] = $colIndex;
                         } elseif (str_contains($headerLower, 'category') || str_contains($headerLower, 'participation')) {
@@ -503,6 +538,21 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                     ? trim((string)$row[$columnMap['current_belt']]) : '';
                 $nextBelt = isset($columnMap['next_belt']) && isset($row[$columnMap['next_belt']]) 
                     ? trim((string)$row[$columnMap['next_belt']]) : '';
+
+                // Extract Result/Placement and Placed-in fields for competition/championship
+                $placementRaw = '';
+                if (isset($columnMap['placement']) && isset($row[$columnMap['placement']])) {
+                    $placementRaw = trim((string)$row[$columnMap['placement']]);
+                } elseif (isset($columnMap['rank']) && isset($row[$columnMap['rank']])) {
+                    $placementRaw = trim((string)$row[$columnMap['rank']]);
+                }
+                $placementKey = $this->normalizePlacementKey($placementRaw);
+                $placement = !empty($placementRaw) ? $placementRaw : ($placementKey === '1st' ? '1st Place' : ($placementKey === '2nd' ? '2nd Place' : ($placementKey === '3rd' ? '3rd Place' : 'Participation')));
+
+                $placedIn = '';
+                if (isset($columnMap['placed_in']) && isset($row[$columnMap['placed_in']])) {
+                    $placedIn = trim((string)$row[$columnMap['placed_in']]);
+                }
 
                 // Treat placeholders as empty
                 if ($this->isBlankBeltValue($currentBelt)) {
@@ -622,6 +672,9 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                     'category' => $category,
                     'current_belt' => $currentBelt,
                     'next_belt' => $nextBelt,
+                    'placement' => $placement,
+                    'placement_key' => $placementKey,
+                    'placed_in' => $placedIn,
                 ];
             }
 
@@ -759,14 +812,45 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
     }
 
     /**
-     * Resolve template for one participant. Belt event: use next_belt → template mapping. Competition: use certificate's template.
-     * Falls back to current_belt when next_belt is blank / N/A.
+     * Resolve template for one participant:
+     * - Belt event: next_belt -> template mapping
+     * - Intro School event: placement -> template mapping (1st, 2nd, 3rd, Participation)
+     * - Championship event: placement -> template mapping (1st, 2nd, 3rd, Participation)
+     * - Competition event: certificate batch template
      */
     private function getTemplateForParticipant(Certificate $certificate, array $participant)
     {
         $certificateType = strtolower($certificate->certificate_type ?? 'belt');
         if ($certificateType === 'competition') {
             return $certificate->template;
+        }
+
+        if ($certificateType === 'intro_school') {
+            $placementKey = $participant['placement_key'] ?? $this->normalizePlacementKey($participant['placement'] ?? ($participant['rank'] ?? ''));
+            $cache = $this->getIntroSchoolTemplateCache();
+            $template = $cache[$placementKey] ?? ($cache['participation'] ?? (reset($cache) ?: null));
+            if (!$template) {
+                Log::warning('Certificate generation: template not found for intro school placement', [
+                    'placement_key' => $placementKey,
+                    'placement' => $participant['placement'] ?? null,
+                    'name' => $participant['name'] ?? null,
+                ]);
+            }
+            return $template;
+        }
+
+        if ($certificateType === 'championship') {
+            $placementKey = $participant['placement_key'] ?? $this->normalizePlacementKey($participant['placement'] ?? ($participant['rank'] ?? ''));
+            $cache = $this->getChampionshipTemplateCache();
+            $template = $cache[$placementKey] ?? ($cache['participation'] ?? (reset($cache) ?: null));
+            if (!$template) {
+                Log::warning('Certificate generation: template not found for championship placement', [
+                    'placement_key' => $placementKey,
+                    'placement' => $participant['placement'] ?? null,
+                    'name' => $participant['name'] ?? null,
+                ]);
+            }
+            return $template;
         }
 
         $participant = $this->resolveParticipantBelts($participant);
@@ -870,6 +954,85 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
     }
 
     /**
+     * Normalize placement text to one of: '1st', '2nd', '3rd', 'participation'
+     */
+    public function normalizePlacementKey(?string $placement): string
+    {
+        if ($placement === null || trim($placement) === '') {
+            return 'participation';
+        }
+        $p = strtolower(trim($placement));
+        if (preg_match('/\b(1st|first|1|gold)\b/i', $p) || str_contains($p, '1st') || str_contains($p, 'first') || str_contains($p, 'merit 1')) {
+            return '1st';
+        }
+        if (preg_match('/\b(2nd|second|2|silver)\b/i', $p) || str_contains($p, '2nd') || str_contains($p, 'second') || str_contains($p, 'merit 2')) {
+            return '2nd';
+        }
+        if (preg_match('/\b(3rd|third|3|bronze)\b/i', $p) || str_contains($p, '3rd') || str_contains($p, 'third') || str_contains($p, 'merit 3')) {
+            return '3rd';
+        }
+        return 'participation';
+    }
+
+    /**
+     * Get cached map of placement key => CertificateTemplate for Intro School
+     */
+    private function getIntroSchoolTemplateCache()
+    {
+        if ($this->introSchoolTemplateCache !== null) {
+            return $this->introSchoolTemplateCache;
+        }
+        $templates = CertificateTemplate::where('certificate_type', 'intro_school')->get();
+        $map = [];
+        foreach ($templates as $template) {
+            $key = $this->normalizePlacementKey($template->name);
+            if ($key !== '' && !isset($map[$key])) {
+                $map[$key] = $template;
+            }
+        }
+        $this->introSchoolTemplateCache = $map;
+        return $this->introSchoolTemplateCache;
+    }
+
+    /**
+     * Get cached map of placement key => CertificateTemplate for Championship
+     */
+    private function getChampionshipTemplateCache()
+    {
+        if ($this->championshipTemplateCache !== null) {
+            return $this->championshipTemplateCache;
+        }
+        $templates = CertificateTemplate::where('certificate_type', 'championship')->get();
+        $map = [];
+        foreach ($templates as $template) {
+            $key = $this->normalizePlacementKey($template->name);
+            if ($key !== '' && !isset($map[$key])) {
+                $map[$key] = $template;
+            }
+        }
+        $this->championshipTemplateCache = $map;
+        return $this->championshipTemplateCache;
+    }
+
+    private function placementTemplateAlreadyUsed(string $certificateType, string $placementName, ?int $ignoreId = null): bool
+    {
+        $key = $this->normalizePlacementKey($placementName);
+        $templates = CertificateTemplate::where('certificate_type', $certificateType)
+            ->when($ignoreId, function ($query) use ($ignoreId) {
+                $query->where('id', '!=', $ignoreId);
+            })
+            ->get();
+
+        foreach ($templates as $template) {
+            if ($this->normalizePlacementKey($template->name) === $key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Template Management Methods
      */
     public function templatesIndex()
@@ -883,22 +1046,32 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
         return view('admin.certificates.templates.create', [
             'beltNames' => self::BELT_TEMPLATE_NAMES,
             'selectedBelt' => old('belt_name'),
+            'placementNames' => self::PLACEMENT_TEMPLATE_NAMES,
+            'selectedPlacement' => old('placement_name'),
         ]);
     }
 
     public function templatesStore(Request $request)
     {
         $request->validate([
-            'name' => 'required_unless:certificate_type,belt|nullable|string|max:255',
+            'name' => 'required_if:certificate_type,competition|nullable|string|max:255',
             'belt_name' => 'required_if:certificate_type,belt|nullable|in:'.implode(',', self::BELT_TEMPLATE_NAMES),
+            'placement_name' => 'required_if:certificate_type,intro_school,championship|nullable|in:'.implode(',', self::PLACEMENT_TEMPLATE_NAMES),
             'description' => 'nullable|string',
-            'certificate_type' => 'required|in:belt,competition',
-            'background_image' => 'required|image|mimes:jpeg,jpg|max:5120', // 5MB max, required
+            'certificate_type' => 'required|in:belt,competition,intro_school,championship',
+            'background_image' => 'required|image|mimes:jpeg,jpg,png|max:10240', // 10MB max, required
         ]);
 
         if ($request->certificate_type === 'belt' && $this->beltTemplateAlreadyUsed($request->belt_name)) {
             return redirect()->back()->withInput()->withErrors([
                 'belt_name' => 'A template for '.$request->belt_name.' already exists.',
+            ]);
+        }
+
+        if (in_array($request->certificate_type, ['intro_school', 'championship'], true) && $this->placementTemplateAlreadyUsed($request->certificate_type, $request->placement_name)) {
+            $typeName = $request->certificate_type === 'intro_school' ? 'Intro School' : 'Championship';
+            return redirect()->back()->withInput()->withErrors([
+                'placement_name' => 'A template for '.$request->placement_name.' already exists for '.$typeName.'.',
             ]);
         }
 
@@ -917,8 +1090,15 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                 }
             }
 
+            $templateName = $request->name;
+            if ($request->certificate_type === 'belt') {
+                $templateName = $request->belt_name;
+            } elseif (in_array($request->certificate_type, ['intro_school', 'championship'], true)) {
+                $templateName = $request->placement_name;
+            }
+
             CertificateTemplate::create([
-                'name' => $request->certificate_type === 'belt' ? $request->belt_name : $request->name,
+                'name' => $templateName,
                 'description' => $request->description,
                 'certificate_type' => $request->certificate_type,
                 'background_image' => $backgroundImagePath,
@@ -945,26 +1125,47 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
             }
         }
 
+        $selectedPlacement = old('placement_name');
+        if ($selectedPlacement === null && in_array($template->certificate_type, ['intro_school', 'championship'], true)) {
+            $currentKey = $this->normalizePlacementKey($template->name);
+            foreach (self::PLACEMENT_TEMPLATE_NAMES as $pName) {
+                if ($this->normalizePlacementKey($pName) === $currentKey) {
+                    $selectedPlacement = $pName;
+                    break;
+                }
+            }
+        }
+
         return view('admin.certificates.templates.edit', [
             'template' => $template,
             'beltNames' => self::BELT_TEMPLATE_NAMES,
             'selectedBelt' => $selectedBelt,
+            'placementNames' => self::PLACEMENT_TEMPLATE_NAMES,
+            'selectedPlacement' => $selectedPlacement,
         ]);
     }
 
     public function templatesUpdate(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required_unless:certificate_type,belt|nullable|string|max:255',
+            'name' => 'required_if:certificate_type,competition|nullable|string|max:255',
             'belt_name' => 'required_if:certificate_type,belt|nullable|in:'.implode(',', self::BELT_TEMPLATE_NAMES),
+            'placement_name' => 'required_if:certificate_type,intro_school,championship|nullable|in:'.implode(',', self::PLACEMENT_TEMPLATE_NAMES),
             'description' => 'nullable|string',
-            'certificate_type' => 'required|in:belt,competition',
-            'background_image' => 'nullable|image|mimes:jpeg,jpg|max:5120',
+            'certificate_type' => 'required|in:belt,competition,intro_school,championship',
+            'background_image' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
         ]);
 
         if ($request->certificate_type === 'belt' && $this->beltTemplateAlreadyUsed($request->belt_name, (int) $id)) {
             return redirect()->back()->withInput()->withErrors([
                 'belt_name' => 'A template for '.$request->belt_name.' already exists.',
+            ]);
+        }
+
+        if (in_array($request->certificate_type, ['intro_school', 'championship'], true) && $this->placementTemplateAlreadyUsed($request->certificate_type, $request->placement_name, (int) $id)) {
+            $typeName = $request->certificate_type === 'intro_school' ? 'Intro School' : 'Championship';
+            return redirect()->back()->withInput()->withErrors([
+                'placement_name' => 'A template for '.$request->placement_name.' already exists for '.$typeName.'.',
             ]);
         }
 
@@ -987,8 +1188,15 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                 $template->background_image = $backgroundImagePath;
             }
 
+            $templateName = $request->name;
+            if ($request->certificate_type === 'belt') {
+                $templateName = $request->belt_name;
+            } elseif (in_array($request->certificate_type, ['intro_school', 'championship'], true)) {
+                $templateName = $request->placement_name;
+            }
+
             $template->update([
-                'name' => $request->certificate_type === 'belt' ? $request->belt_name : $request->name,
+                'name' => $templateName,
                 'description' => $request->description,
                 'certificate_type' => $request->certificate_type,
             ]);
