@@ -192,8 +192,18 @@
             @foreach ($formData as $field)
                 @if (($field['type'] ?? '') === 'file' && !empty($field['value']))
                     <div class="image-block">
-                        {{-- <span>Candidate Image</span><br> --}}
-                        <img src="{{ public_path(str_replace('public/', 'storage/', $field['value'])) }}"
+                        @php
+                            $candidateVal = $field['value'] ?? '';
+                            $cleanRel = ltrim(str_replace(['/storage/', 'storage/', 'public/'], '', $candidateVal), '/');
+                            $candidateImgPath = storage_path('app/public/' . $cleanRel);
+                            if (!file_exists($candidateImgPath)) {
+                                $candidateImgPath = public_path(str_replace('public/', 'storage/', $candidateVal));
+                            }
+                            if (!file_exists($candidateImgPath)) {
+                                $candidateImgPath = base_path('storage/app/public/' . $cleanRel);
+                            }
+                        @endphp
+                        <img src="{{ $candidateImgPath }}"
                             alt="Candidate Image">
                     </div>
                     @break

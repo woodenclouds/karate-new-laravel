@@ -357,17 +357,14 @@
                             </label>
                             @if($template->background_image)
                                 @php
-                                    $imageExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($template->background_image);
-                                    $imageUrl = $imageExists ? asset('storage/' . $template->background_image) : null;
+                                    $imageUrl = route('admin.certificates.templates.preview', $template->id);
                                 @endphp
-                                @if($imageUrl)
-                                    <div class="current-image">
-                                        <strong style="display: block; margin-bottom: 8px; font-size: 12px;">Current Image:</strong>
-                                        <img src="{{ $imageUrl }}" 
-                                             alt="Current template background"
-                                             onerror="this.style.display='none';">
-                                    </div>
-                                @endif
+                                <div class="current-image">
+                                    <strong style="display: block; margin-bottom: 8px; font-size: 12px;">Current Image:</strong>
+                                    <img src="{{ $imageUrl }}" 
+                                         alt="Current template background"
+                                         onerror="this.style.display='none';">
+                                </div>
                             @endif
                             <input type="file" 
                                    class="form-control @error('background_image') is-invalid @enderror" 
