@@ -255,12 +255,18 @@ function loadEventForm(eventId) {
         });
 }
 
+function isAdminOptionalEmailField(field) {
+    const label = (field.label || '').toLowerCase();
+    return field.type === 'email' || label.includes('email');
+}
+
 function renderFormFields(fields) {
     console.log('Rendering form fields:', fields);
     let html = '';
     fields.forEach((field, index) => {
+        const isRequired = !!field.required && !isAdminOptionalEmailField(field);
         html += `<div class="mb-3">`;
-        html += `<label for="field_${index}" class="form-label">${field.label} ${field.required ? '<span class="text-danger">*</span>' : ''}</label>`;
+        html += `<label for="field_${index}" class="form-label">${field.label} ${isRequired ? '<span class="text-danger">*</span>' : ''}</label>`;
         
         // Add hidden fields for label and type
         html += `<input type="hidden" name="registration_data[${index}][label]" value="${field.label}">`;
@@ -270,10 +276,10 @@ function renderFormFields(fields) {
             case 'text':
             case 'email':
             case 'tel':
-                html += `<input type="${field.type}" class="form-control" id="field_${index}" name="registration_data[${index}][value]" placeholder="Enter ${field.label}" ${field.required ? 'required' : ''}>`;
+                html += `<input type="${field.type}" class="form-control" id="field_${index}" name="registration_data[${index}][value]" placeholder="Enter ${field.label}" ${isRequired ? 'required' : ''}>`;
                 break;
             case 'select':
-                html += `<select class="form-select" id="field_${index}" name="registration_data[${index}][value]" ${field.required ? 'required' : ''}>`;
+                html += `<select class="form-select" id="field_${index}" name="registration_data[${index}][value]" ${isRequired ? 'required' : ''}>`;
                 html += `<option value="">Select ${field.label}</option>`;
                 if (field.options) {
                     const options = JSON.parse(field.options);
@@ -284,7 +290,7 @@ function renderFormFields(fields) {
                 html += `</select>`;
                 break;
             case 'belt':
-                html += `<select class="form-select" id="field_${index}" name="registration_data[${index}][value]" ${field.required ? 'required' : ''}>`;
+                html += `<select class="form-select" id="field_${index}" name="registration_data[${index}][value]" ${isRequired ? 'required' : ''}>`;
                 html += `<option value="">Select Belt</option>`;
                 html += `</select>`;
                 break;
@@ -463,12 +469,13 @@ function renderStudentFormFields(fields) {
     fields.forEach((field, index) => {
         const fieldName = `student_data[${field.id}]`;
         const label = field.label;
-        const required = field.required ? 'required' : '';
+        const isRequired = !!field.required && !isAdminOptionalEmailField(field);
+        const required = isRequired ? 'required' : '';
         const options = field.options ? JSON.parse(field.options) : [];
         const type = field.type;
         
         html += `<div class="mb-3">`;
-        html += `<label class="form-label">${label} ${field.required ? '<span class="text-danger">*</span>' : ''}</label>`;
+        html += `<label class="form-label">${label} ${isRequired ? '<span class="text-danger">*</span>' : ''}</label>`;
         
         switch(type) {
             case 'text':

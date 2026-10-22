@@ -40,6 +40,33 @@ class FormSubmissionController extends Controller
 
         $participationType = null;
         $beltName = null;
+        $rules = [];
+        $messages = [];
+
+        foreach ($fields as $field) {
+            $fieldKey = "fields.{$field->id}";
+            $isEmailField = $field->type === 'email'
+                || str_contains(strtolower($field->label), 'email');
+
+            if ($field->required || $isEmailField) {
+                $fieldRules = ['required'];
+                if ($isEmailField) {
+                    $fieldRules[] = 'email';
+                }
+                if ($field->type === 'file') {
+                    $fieldRules[] = 'file';
+                }
+                $rules[$fieldKey] = $fieldRules;
+                $messages["{$fieldKey}.required"] = $field->label.' is required.';
+                if ($isEmailField) {
+                    $messages["{$fieldKey}.email"] = 'Enter a valid email address.';
+                }
+            }
+        }
+
+        if (!empty($rules)) {
+            $request->validate($rules, $messages);
+        }
 
         foreach ($fields as $field) {
             $fieldKey = "fields.{$field->id}";

@@ -67,11 +67,23 @@
             </div>
         @endif
 
-        <!-- Category Field - CATEGORY (Only for Competition certificates) -->
-        @if($certificateType === 'competition')
+        <!-- Category Field - CATEGORY -->
+        @if(in_array($certificateType, ['competition', 'intro_school', 'championship']))
             <div class="dynamic-field field-category" style="color: {{ $categoryColor }}; font-size: {{ $categorySize }}; font-weight: {{ $categoryBold }};">
                 {{ isset($participant['category']) && !empty($participant['category']) ? strtoupper(trim($participant['category'])) : '' }}
             </div>
+        @endif
+
+        <!-- Placed In Field (e.g., Team Kumite, Kata) for Championship and Intro School -->
+        @if(in_array($certificateType, ['intro_school', 'championship']))
+            @php
+                $placedInVal = !empty($participant['placed_in']) ? $participant['placed_in'] : ($participant['class'] ?? '');
+            @endphp
+            @if(!empty(trim($placedInVal)))
+                <div class="dynamic-field field-placed-in" style="color: {{ $nameColor }}; font-size: 13pt; font-weight: bold;">
+                    {{ strtoupper(trim($placedInVal)) }}
+                </div>
+            @endif
         @endif
 
         <!-- Date of Registration Field - DATE OF REG. 登録日 -->

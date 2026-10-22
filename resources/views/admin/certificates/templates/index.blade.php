@@ -191,8 +191,17 @@ use Illuminate\Support\Facades\Storage;
                             @if($template->description)
                                 <p style="font-size: 12px; color: #666; margin: 5px 0 0 0;">{{ $template->description }}</p>
                             @endif
-                            <span class="badge bg-{{ $template->certificate_type === 'belt' ? 'info' : 'success' }}" style="margin-top: 5px;">
-                                {{ ucfirst($template->certificate_type) }}
+                            @php
+                                $typeLabels = [
+                                    'belt' => ['class' => 'bg-primary', 'text' => 'Belt Certificate'],
+                                    'intro_school' => ['class' => 'bg-warning text-dark', 'text' => 'Intro School'],
+                                    'championship' => ['class' => 'bg-danger', 'text' => 'Championship'],
+                                    'competition' => ['class' => 'bg-success', 'text' => 'Competition'],
+                                ];
+                                $badge = $typeLabels[$template->certificate_type] ?? ['class' => 'bg-secondary', 'text' => ucfirst(str_replace('_', ' ', $template->certificate_type))];
+                            @endphp
+                            <span class="badge {{ $badge['class'] }}" style="margin-top: 5px;">
+                                {{ $badge['text'] }}
                             </span>
                         </div>
                         <div class="template-preview">

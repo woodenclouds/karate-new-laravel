@@ -48,8 +48,17 @@
                             <tr>
                                 <td>{{ $certificate->event_title }}</td>
                                 <td>
-                                    <span class="badge bg-{{ $certificate->certificate_type === 'belt' ? 'info' : 'success' }}">
-                                        {{ ucfirst($certificate->certificate_type) }}
+                                    @php
+                                        $typeBadges = [
+                                            'belt' => ['class' => 'bg-primary', 'text' => 'Belt'],
+                                            'intro_school' => ['class' => 'bg-warning text-dark', 'text' => 'Intro School'],
+                                            'championship' => ['class' => 'bg-danger', 'text' => 'Championship'],
+                                            'competition' => ['class' => 'bg-success', 'text' => 'Competition'],
+                                        ];
+                                        $tBadge = $typeBadges[$certificate->certificate_type] ?? ['class' => 'bg-secondary', 'text' => ucfirst(str_replace('_', ' ', $certificate->certificate_type))];
+                                    @endphp
+                                    <span class="badge {{ $tBadge['class'] }}">
+                                        {{ $tBadge['text'] }}
                                     </span>
                                 </td>
                                 <td>{{ \Carbon\Carbon::parse($certificate->event_date)->format('d M Y') }}</td>

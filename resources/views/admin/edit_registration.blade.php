@@ -107,10 +107,13 @@
                                                 str_contains(strtolower($field->label), 'dob')) {
                                                 continue;
                                             }
+                                            $isEmailField = $field->type === 'email'
+                                                || str_contains(strtolower($field->label), 'email');
+                                            $isRequired = $field->required && !$isEmailField;
                                         @endphp
                                         <div class="mb-3">
                                             <label for="field_{{ $index }}" class="form-label">
-                                                {{ $field->label }}@if($field->required) <span class="text-danger">*</span>@endif
+                                                {{ $field->label }}@if($isRequired) <span class="text-danger">*</span>@endif
                                             </label>
                                             
                                             @php
@@ -132,12 +135,12 @@
                                                     <input type="{{ $field->type }}" class="form-control" 
                                                            name="registration_data[{{ $index }}][value]" 
                                                            value="{{ $currentValue }}" 
-                                                           {{ $field->required ? 'required' : '' }}>
+                                                           {{ $isRequired ? 'required' : '' }}>
                                                     @break
                                                 @case('select')
                                                     <input type="hidden" name="registration_data[{{ $index }}][label]" value="{{ $field->label }}">
                                                     <input type="hidden" name="registration_data[{{ $index }}][type]" value="{{ $field->type }}">
-                                                    <select class="form-select" name="registration_data[{{ $index }}][value]" {{ $field->required ? 'required' : '' }}>
+                                                    <select class="form-select" name="registration_data[{{ $index }}][value]" {{ $isRequired ? 'required' : '' }}>
                                                         <option value="">Select {{ $field->label }}</option>
                                                         @if($field->options)
                                                             @foreach(json_decode($field->options) as $option)
@@ -151,7 +154,7 @@
                                                 @case('belt')
                                                     <input type="hidden" name="registration_data[{{ $index }}][label]" value="{{ $field->label }}">
                                                     <input type="hidden" name="registration_data[{{ $index }}][type]" value="{{ $field->type }}">
-                                                    <select class="form-select" name="registration_data[{{ $index }}][value]" {{ $field->required ? 'required' : '' }}>
+                                                    <select class="form-select" name="registration_data[{{ $index }}][value]" {{ $isRequired ? 'required' : '' }}>
                                                         <option value="">Select Belt</option>
                                                         @foreach(\App\Models\Admin\belt::all() as $belt)
                                                             <option value="{{ $belt->id }}" {{ $currentValue == $belt->id ? 'selected' : '' }}>

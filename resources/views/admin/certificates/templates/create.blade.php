@@ -266,7 +266,7 @@
                                     name="belt_name">
                                 <option value="">Select belt</option>
                                 @foreach ($beltNames as $beltName)
-                                    <option value="{{ $beltName }}" {{ $selectedBelt === $beltName ? 'selected' : '' }}>
+                                    <option value="{{ $beltName }}" {{ ($selectedBelt ?? old('belt_name')) === $beltName ? 'selected' : '' }}>
                                         {{ $beltName }}
                                     </option>
                                 @endforeach
@@ -274,7 +274,27 @@
                             @error('belt_name')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">This template is used when the Excel Next Belt is this belt.</div>
+                            <div class="helper-text">This template is used when the Excel Next Belt matches this belt.</div>
+                        </div>
+
+                        <div class="form-group" id="placement_name_group" style="display: none;">
+                            <label for="placement_name" class="form-label">
+                                Result / Placement <span class="required">*</span>
+                            </label>
+                            <select class="form-control @error('placement_name') is-invalid @enderror"
+                                    id="placement_name"
+                                    name="placement_name">
+                                <option value="">Select placement</option>
+                                @foreach ($placementNames as $pName)
+                                    <option value="{{ $pName }}" {{ ($selectedPlacement ?? old('placement_name')) === $pName ? 'selected' : '' }}>
+                                        {{ $pName }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('placement_name')
+                                <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
+                            @enderror
+                            <div class="helper-text">This template is picked automatically when the Excel Result/Placement column matches this placement.</div>
                         </div>
 
                         <div class="form-group" id="name_group">
@@ -286,11 +306,11 @@
                                    id="name" 
                                    name="name" 
                                    value="{{ old('name') }}" 
-                                   placeholder="e.g., Sports Certificate, Academic Award">
+                                   placeholder="e.g., General Competition Certificate">
                             @error('name')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Shows on: template list in admin. Used for competition certificates.</div>
+                            <div class="helper-text">Shows on: template list in admin. Used for general competition certificates.</div>
                         </div>
 
                         <div class="form-group">
@@ -310,12 +330,14 @@
                                 Certificate Type <span class="required">*</span>
                             </label>
                             <select class="form-control @error('certificate_type') is-invalid @enderror" 
-                                    id="certificate_type" 
-                                    name="certificate_type" 
-                                    required>
+                                     id="certificate_type" 
+                                     name="certificate_type" 
+                                     required>
                                 <option value="">Select Type</option>
                                 <option value="belt" {{ old('certificate_type') === 'belt' ? 'selected' : '' }}>Belt Certificate</option>
-                                <option value="competition" {{ old('certificate_type') === 'competition' ? 'selected' : '' }}>Competition Certificate</option>
+                                <option value="intro_school" {{ old('certificate_type') === 'intro_school' ? 'selected' : '' }}>Intro School (1st–3rd + Participation)</option>
+                                <option value="championship" {{ old('certificate_type') === 'championship' ? 'selected' : '' }}>Championship (1st–3rd + Participation)</option>
+                                <option value="competition" {{ old('certificate_type') === 'competition' ? 'selected' : '' }}>Competition Certificate (Single template)</option>
                             </select>
                             @error('certificate_type')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
@@ -330,12 +352,12 @@
                                    class="form-control @error('background_image') is-invalid @enderror" 
                                    id="background_image" 
                                    name="background_image" 
-                                   accept="image/jpeg,image/jpg"
+                                   accept="image/jpeg,image/jpg,image/png"
                                    required>
                             @error('background_image')
                                 <div class="text-danger" style="font-size: 12px; margin-top: 5px;">{{ $message }}</div>
                             @enderror
-                            <div class="helper-text">Shows on: certificate PDF as the full background design behind Name, Place, Reg. No / Category, and Date.</div>
+                            <div class="helper-text">Upload the high-resolution background design. Dimensions: A4 portrait (21cm × 29.7cm) or Belt size (24cm × 33cm). Max 10MB.</div>
                         </div>
 
                         <button type="submit" class="save-btn">
@@ -350,28 +372,23 @@
                 <div class="instructions-header">Instructions</div>
                 <div class="instructions-body">
                     <div class="requirements-section">
-                        <div class="requirements-title">Template Requirements:</div>
+                        <div class="requirements-title">Template Types:</div>
                         <ul class="requirements-list">
-                            <li><strong>Format:</strong> JPG/JPEG only</li>
-                            <li><strong>Size:</strong> Maximum 5MB</li>
-                            <li><strong>Recommended:</strong>
-                                <ul>
-                                    <li>Standard certificate size (8.5" x 11" or A4)</li>
-                                    <li>High resolution (300 DPI recommended)</li>
-                                    <li>Background image with space for text overlay</li>
-                                </ul>
-                            </li>
+                            <li><strong>Belt Certificate:</strong> Upload 1 template per belt (Yellow, Orange, etc.). System auto-picks by participant's Next Belt.</li>
+                            <li><strong>Intro School:</strong> Upload 4 templates (1st Place, 2nd Place, 3rd Place, Participation). System auto-picks by Excel Result/Placement.</li>
+                            <li><strong>Championship:</strong> Upload 4 templates (1st Place, 2nd Place, 3rd Place, Participation). System auto-picks by Excel Result/Placement.</li>
+                            <li><strong>Competition:</strong> Upload a custom template name and select it manually when creating the batch.</li>
                         </ul>
                     </div>
 
                     <div class="tip-box">
-                        <strong>Tip:</strong>
-                        <p>The template will be used as the background for all certificates. Text will be overlaid on top of this image, so ensure the background has appropriate contrast for text readability.</p>
+                        <strong>Auto Template Matching:</strong>
+                        <p>For Belt, Intro School, and Championship, you only upload the background templates once here. When generating certificates, the system matches each participant's row automatically.</p>
                     </div>
 
                     <div class="note-box">
-                        <strong>Note:</strong>
-                        <p>Once uploaded, templates can be selected when creating certificate batches. You can upload multiple templates for different certificate types.</p>
+                        <strong>Resolution & Quality:</strong>
+                        <p>Recommended 300 DPI (JPG/PNG). The system will overlay text (Name, Category, Date, Venue, etc.) precisely onto the designated lines.</p>
                     </div>
                 </div>
             </div>
@@ -383,10 +400,20 @@
     function toggleTemplateNameFields() {
         var type = document.getElementById('certificate_type').value;
         var isBelt = type === 'belt';
+        var isPlacement = (type === 'intro_school' || type === 'championship');
+        var isCompetition = type === 'competition';
+
         document.getElementById('belt_name_group').style.display = isBelt ? '' : 'none';
-        document.getElementById('name_group').style.display = isBelt ? 'none' : '';
-        document.getElementById('belt_name').required = isBelt;
-        document.getElementById('name').required = !isBelt;
+        document.getElementById('placement_name_group').style.display = isPlacement ? '' : 'none';
+        document.getElementById('name_group').style.display = isCompetition ? '' : 'none';
+
+        var beltSelect = document.getElementById('belt_name');
+        var placementSelect = document.getElementById('placement_name');
+        var nameInput = document.getElementById('name');
+
+        if (beltSelect) beltSelect.required = isBelt;
+        if (placementSelect) placementSelect.required = isPlacement;
+        if (nameInput) nameInput.required = isCompetition;
     }
     document.getElementById('certificate_type').addEventListener('change', toggleTemplateNameFields);
     toggleTemplateNameFields();
