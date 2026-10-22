@@ -153,15 +153,38 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/certificates/templates', [CertificateController::class, 'templatesIndex'])->name('admin.certificates.templates.index');
     Route::get('/certificates/templates/create', [CertificateController::class, 'templatesCreate'])->name('admin.certificates.templates.create');
     Route::post('/certificates/templates/store', [CertificateController::class, 'templatesStore'])->name('admin.certificates.templates.store');
+    Route::get('/certificates/templates/{id}/preview', [CertificateController::class, 'templatePreview'])->name('admin.certificates.templates.preview');
     Route::get('/certificates/templates/{id}/edit', [CertificateController::class, 'templatesEdit'])->name('admin.certificates.templates.edit');
     Route::put('/certificates/templates/{id}', [CertificateController::class, 'templatesUpdate'])->name('admin.certificates.templates.update');
     Route::delete('/certificates/templates/{id}', [CertificateController::class, 'templatesDestroy'])->name('admin.certificates.templates.destroy');
+    
+    // Storage link helper for shared hosting environments
+    Route::get('/fix-storage-link', function () {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('storage:link');
+            return response()->json([
+                'status' => 'success',
+                'message' => 'storage:link output: ' . \Illuminate\Support\Facades\Artisan::output(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    })->name('admin.fix.storage.link');
     
     // Certificate Event routes with parameters (must come after specific routes)
     Route::get('/certificates/{certificateId}/view/{registrationId}', [CertificateController::class, 'viewCertificate'])->name('admin.certificates.view');
     Route::get('/certificates/{id}/download-all', [CertificateController::class, 'downloadAll'])->name('admin.certificates.downloadAll');
     Route::get('/certificates/{id}', [CertificateController::class, 'show'])->name('admin.certificates.show');
 });
+
+// Fallback direct route for certificate template images to bypass broken or blocked server symlinks
+Route::get('/storage/certificates/templates/{filename}', [CertificateController::class, 'serveTemplateImageByFilename'])
+    ->where('filename', '[A-Za-z0-9_\-\.]+')
+    ->name('certificates.templates.file');
+
 Route::get('/test-mail', function () {
     Mail::raw('This is a test mail from Laravel.', function ($message) {
         $message->to('yourreceiver@gmail.com')

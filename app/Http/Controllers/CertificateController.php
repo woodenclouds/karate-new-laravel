@@ -891,11 +891,14 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
             $imagePath = public_path('storage/' . $template->background_image);
         }
         if (!file_exists($imagePath)) {
+            $imagePath = base_path('storage/app/public/' . $template->background_image);
+        }
+        if (!file_exists($imagePath)) {
             return null;
         }
         $imageData = file_get_contents($imagePath);
         $base64 = base64_encode($imageData);
-        $mimeType = mime_content_type($imagePath);
+        $mimeType = mime_content_type($imagePath) ?: 'image/jpeg';
         return 'data:' . $mimeType . ';base64,' . $base64;
     }
 
@@ -1230,5 +1233,60 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error deleting template: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Serve template background image securely, bypassing server symlink restrictions.
+     */
+    public function templatePreview($id)
+    {
+        $template = CertificateTemplate::findOrFail($id);
+        if (!$template->background_image) {
+            abort(404, 'Template has no background image.');
+        }
+
+        return $this->streamTemplateImage($template->background_image);
+    }
+
+    /**
+     * Fallback route to serve template background image by filename.
+     */
+    public function serveTemplateImageByFilename($filename)
+    {
+        $filename = basename($filename);
+        $relativePath = 'certificates/templates/' . $filename;
+        return $this->streamTemplateImage($relativePath);
+    }
+
+    /**
+     * Internal helper to locate and stream a template image file from storage.
+     */
+    private function streamTemplateImage($relativePath)
+    {
+        // 1. Direct candidate filesystem paths (bypasses symlinks completely)
+        $candidatePaths = [
+            storage_path('app/public/' . $relativePath),
+            public_path('storage/' . $relativePath),
+            base_path('storage/app/public/' . $relativePath),
+        ];
+
+        foreach ($candidatePaths as $path) {
+            if (file_exists($path) && is_file($path)) {
+                $mimeType = mime_content_type($path) ?: 'image/jpeg';
+                return response()->file($path, [
+                    'Content-Type' => $mimeType,
+                    'Cache-Control' => 'public, max-age=86400',
+                ]);
+            }
+        }
+
+        // 2. Storage disk response fallback
+        if (Storage::disk('public')->exists($relativePath)) {
+            return Storage::disk('public')->response($relativePath, null, [
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+
+        abort(404, 'Template image not found on server.');
     }
 }

@@ -207,24 +207,13 @@ use Illuminate\Support\Facades\Storage;
                         <div class="template-preview">
                             @if($template->background_image)
                                 @php
-                                    // Check if file exists in storage
-                                    $imageExists = Storage::disk('public')->exists($template->background_image);
-                                    // Generate URL - use asset() with storage path
-                                    $imageUrl = $imageExists ? asset('storage/' . $template->background_image) : null;
+                                    $imageUrl = route('admin.certificates.templates.preview', $template->id);
                                 @endphp
-                                @if($imageUrl)
-                                    <img src="{{ $imageUrl }}" 
-                                         alt="{{ $template->name }} Template Preview"
-                                         style="width: 100%; height: 100%; object-fit: contain; background: white;"
-                                         loading="lazy"
-                                         onerror="this.parentElement.innerHTML='<div class=\'template-preview-placeholder\'><i class=\'bi bi-image\' style=\'font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.3;\'></i>Image failed to load<br><small style=\'font-size: 11px; color: #999;\'>Click Edit to re-upload</small></div>';">
-                                @else
-                                    <div class="template-preview-placeholder">
-                                        <i class="bi bi-image" style="font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.3;"></i>
-                                        Image file missing<br>
-                                        <small style="font-size: 11px; color: #999;">Click Edit below to re-upload</small>
-                                    </div>
-                                @endif
+                                <img src="{{ $imageUrl }}" 
+                                     alt="{{ $template->name }} Template Preview"
+                                     style="width: 100%; height: 100%; object-fit: contain; background: white;"
+                                     loading="lazy"
+                                     onerror="this.parentElement.innerHTML='<div class=\'template-preview-placeholder\'><i class=\'bi bi-image\' style=\'font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.3;\'></i>Image failed to load<br><small style=\'font-size: 11px; color: #999;\'>Click Edit to re-upload</small></div>';">
                             @else
                                 <div class="template-preview-placeholder">
                                     <i class="bi bi-image" style="font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.3;"></i>

@@ -474,8 +474,8 @@ use Illuminate\Support\Facades\Storage;
                             <div class="template-selection">
                                 @forelse($templates->where('certificate_type', 'competition') as $template)
                                     @php
-                                        $imageUrl = $template->background_image && Storage::disk('public')->exists($template->background_image) 
-                                            ? asset('storage/' . $template->background_image) 
+                                        $imageUrl = $template->background_image 
+                                            ? route('admin.certificates.templates.preview', $template->id) 
                                             : null;
                                         $isSelected = old('template_id') == $template->id;
                                     @endphp
