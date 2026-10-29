@@ -120,7 +120,7 @@
                     </div>
                     <div class="card-body">
                         <p><strong>Title:</strong> {{ $certificate->event_title }}</p>
-                        <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($certificate->event_date)->format('d M Y') }}</p>
+                        <p><strong>Date:</strong> {{ \App\Models\Certificate::formatDate($certificate->event_date) }}</p>
                         <p><strong>Venue:</strong> {{ $certificate->certificateVenue() }}</p>
                         @php
                             $typeBadges = [
@@ -197,17 +197,7 @@
                                             @endif
                                             <td>{{ $certificate->certificateVenue() !== '' ? $certificate->certificateVenue() : '-' }}</td>
                                             <td>
-                                                @if(!empty($participant['date_of_reg']))
-                                                    @php
-                                                        try {
-                                                            echo \Carbon\Carbon::parse($participant['date_of_reg'])->format('d M Y');
-                                                        } catch (\Exception $e) {
-                                                            echo $participant['date_of_reg'];
-                                                        }
-                                                    @endphp
-                                                @else
-                                                    -
-                                                @endif
+                                                {{ \App\Models\Certificate::formatDate($participant['date_of_reg'] ?? null, $certificate->event_date ?? null) ?: '-' }}
                                             </td>
                                             <td>
                                                 <a href="{{ route('admin.certificates.view', ['certificateId' => $certificate->id, 'registrationId' => $participant['registration_id']]) }}" 

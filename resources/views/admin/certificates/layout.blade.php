@@ -178,7 +178,7 @@
     <div class="fill-in-line" style="margin-bottom: 10px;">
         <strong>Date:</strong>
         <span style="font-weight: 500;">
-            {{ \Carbon\Carbon::parse($registration->event->event_date)->format('d M Y') }}
+            {{ \App\Models\Certificate::formatDate($registration->event->event_date) }}
         </span>
         &nbsp;&nbsp;&nbsp;
         <strong>Venue:</strong>

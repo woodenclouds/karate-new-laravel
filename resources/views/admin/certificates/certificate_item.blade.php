@@ -88,29 +88,7 @@
 
         <!-- Date of Registration Field - DATE OF REG. 登録日 -->
         <div class="dynamic-field field-date-reg" style="color: {{ $dateColor }}; font-size: {{ $dateSize }}; font-weight: {{ $dateBold }};">
-            @if(isset($participant['date_of_reg']) && !empty($participant['date_of_reg']))
-                @php
-                    $dateStr = trim($participant['date_of_reg']);
-                    try {
-                        $dateStr = preg_replace('/\s+/', ' ', $dateStr);
-                        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $dateStr)) {
-                            $date = \Carbon\Carbon::createFromFormat('Y-m-d', substr($dateStr, 0, 10));
-                            echo $date->format('d M Y');
-                        } elseif (preg_match('/\d{1,2}\/\d{1,2}\/\d{4}/', $dateStr, $matches)) {
-                            $date = \Carbon\Carbon::createFromFormat('d/m/Y', $matches[0]);
-                            echo $date->format('d M Y');
-                        } else {
-                            $date = \Carbon\Carbon::parse($dateStr);
-                            echo $date->format('d M Y');
-                        }
-                    } catch (\Exception $e) {
-                        $cleanDate = preg_replace('/[^0-9\-\/ ]/', '', $dateStr);
-                        echo $cleanDate ?: $dateStr;
-                    }
-                @endphp
-            @elseif(isset($certificate->event_date) && !empty($certificate->event_date))
-                {{ \Carbon\Carbon::parse($certificate->event_date)->format('d M Y') }}
-            @endif
+            {{ \App\Models\Certificate::formatDate($participant['date_of_reg'] ?? null, $certificate->event_date ?? null) }}
         </div>
     </div>
 </div>

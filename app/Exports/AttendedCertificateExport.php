@@ -148,8 +148,8 @@ class AttendedCertificateExport implements FromCollection, WithEvents, WithStyle
             $this->totalAmount += $amountPaid;
 
             $regDate = !empty($reg->created_at) 
-                ? Carbon::parse($reg->created_at)->format('d M Y') 
-                : (!empty($this->event->event_date) ? Carbon::parse($this->event->event_date)->format('d M Y') : 'N/A');
+                ? Carbon::parse($reg->created_at)->format('d F Y') 
+                : (!empty($this->event->event_date) ? Carbon::parse($this->event->event_date)->format('d F Y') : 'N/A');
 
             return [
                 'Registration ID' => $reg->registration_code,
