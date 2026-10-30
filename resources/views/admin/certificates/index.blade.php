@@ -61,7 +61,7 @@
                                         {{ $tBadge['text'] }}
                                     </span>
                                 </td>
-                                <td>{{ \Carbon\Carbon::parse($certificate->event_date)->format('d M Y') }}</td>
+                                <td>{{ \App\Models\Certificate::formatDate($certificate->event_date) }}</td>
                                 <td>{{ $certificate->certificateVenue() }}</td>
                                 <td>{{ $certificate->certificate_count }}</td>
                                 <td>

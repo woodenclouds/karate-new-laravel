@@ -23,6 +23,29 @@
     $categoryColor = $customStyles['category_color'] ?? '#000';
     $categorySize = $customStyles['category_size'] ?? '14pt';
     $categoryBold = isset($customStyles['category_bold']) ? ($customStyles['category_bold'] ? 'bold' : 'normal') : 'bold';
+
+    // Box widths (cm) per field, matching the CSS in certificate_pdf / certificates_bulk_pdf
+    $boxWidths = [
+        'belt'         => ['name' => 14.0, 'place' => 14.0],
+        'competition'  => ['name' => 13.0, 'place' => 13.0, 'category' => 13.0],
+        'championship' => ['name' => 12.0, 'place' => 8.8, 'category' => 13.0, 'placed_in' => 9.8],
+        'intro_school' => ['name' => 12.0, 'place' => 8.8, 'category' => 13.0, 'placed_in' => 9.8],
+    ];
+
+    // Shrinks the font (down to 8pt) so the text fits its box; wraps to two lines only if still too long.
+    $fitStyle = function (string $field, string $text, string $size, string $weight) use ($boxWidths, $certificateType) {
+        $width = $boxWidths[$certificateType][$field] ?? null;
+        $startPt = (float) $size;
+        if ($width === null || $startPt <= 0 || trim($text) === '') {
+            return "font-size: {$size};";
+        }
+        $fit = \App\Support\CertificateText::fit($text, $width, $startPt, $weight === 'bold', 8.0);
+        $css = 'font-size: ' . rtrim(rtrim(number_format($fit['size'], 1, '.', ''), '0'), '.') . 'pt;';
+        if (!$fit['fits']) {
+            $css .= " white-space: normal; width: {$width}cm; max-width: {$width}cm; line-height: 1.05;";
+        }
+        return $css;
+    };
 @endphp
 
 <div class="certificate-container {{ $certificateClass }}">
@@ -34,8 +57,11 @@
     <!-- Dynamic Content Overlay -->
     <div class="content">
         <!-- Name Field - NAME 名前 -->
-        <div class="dynamic-field field-name" style="color: {{ $nameColor }}; font-size: {{ $nameSize }}; font-weight: {{ $nameBold }};">
-            {{ isset($participant['name']) && !empty($participant['name']) ? strtoupper(trim($participant['name'])) : '' }}
+        @php
+            $printedName = !empty($participant['name']) ? strtoupper(trim($participant['name'])) : '';
+        @endphp
+        <div class="dynamic-field field-name" style="color: {{ $nameColor }}; {{ $fitStyle('name', $printedName, $nameSize, $nameBold) }} font-weight: {{ $nameBold }};">
+            {{ $printedName }}
         </div>
 
         <!-- Place Field - venue from the event, exact spelling -->
@@ -46,7 +72,7 @@
                 $printedVenue = trim((string) ($certificate->venue ?? ''));
             }
         @endphp
-        <div class="dynamic-field field-place" style="color: {{ $placeColor }}; font-size: {{ $placeSize }}; font-weight: {{ $placeBold }};">
+        <div class="dynamic-field field-place" style="color: {{ $placeColor }}; {{ $fitStyle('place', $printedVenue, $placeSize, $placeBold) }} font-weight: {{ $placeBold }};">
             {{ $printedVenue }}
         </div>
 
@@ -69,8 +95,11 @@
 
         <!-- Category Field - CATEGORY -->
         @if(in_array($certificateType, ['competition', 'intro_school', 'championship']))
-            <div class="dynamic-field field-category" style="color: {{ $categoryColor }}; font-size: {{ $categorySize }}; font-weight: {{ $categoryBold }};">
-                {{ isset($participant['category']) && !empty($participant['category']) ? strtoupper(trim($participant['category'])) : '' }}
+            @php
+                $printedCategory = !empty($participant['category']) ? strtoupper(trim($participant['category'])) : '';
+            @endphp
+            <div class="dynamic-field field-category" style="color: {{ $categoryColor }}; {{ $fitStyle('category', $printedCategory, $categorySize, $categoryBold) }} font-weight: {{ $categoryBold }};">
+                {{ $printedCategory }}
             </div>
         @endif
 
@@ -80,7 +109,7 @@
                 $placedInVal = !empty($participant['placed_in']) ? $participant['placed_in'] : ($participant['class'] ?? '');
             @endphp
             @if(!empty(trim($placedInVal)))
-                <div class="dynamic-field field-placed-in" style="color: {{ $nameColor }}; font-size: 13pt; font-weight: bold;">
+                <div class="dynamic-field field-placed-in" style="color: {{ $nameColor }}; {{ $fitStyle('placed_in', strtoupper(trim($placedInVal)), '13pt', 'bold') }} font-weight: bold;">
                     {{ strtoupper(trim($placedInVal)) }}
                 </div>
             @endif
@@ -88,29 +117,7 @@
 
         <!-- Date of Registration Field - DATE OF REG. 登録日 -->
         <div class="dynamic-field field-date-reg" style="color: {{ $dateColor }}; font-size: {{ $dateSize }}; font-weight: {{ $dateBold }};">
-            @if(isset($participant['date_of_reg']) && !empty($participant['date_of_reg']))
-                @php
-                    $dateStr = trim($participant['date_of_reg']);
-                    try {
-                        $dateStr = preg_replace('/\s+/', ' ', $dateStr);
-                        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $dateStr)) {
-                            $date = \Carbon\Carbon::createFromFormat('Y-m-d', substr($dateStr, 0, 10));
-                            echo $date->format('d M Y');
-                        } elseif (preg_match('/\d{1,2}\/\d{1,2}\/\d{4}/', $dateStr, $matches)) {
-                            $date = \Carbon\Carbon::createFromFormat('d/m/Y', $matches[0]);
-                            echo $date->format('d M Y');
-                        } else {
-                            $date = \Carbon\Carbon::parse($dateStr);
-                            echo $date->format('d M Y');
-                        }
-                    } catch (\Exception $e) {
-                        $cleanDate = preg_replace('/[^0-9\-\/ ]/', '', $dateStr);
-                        echo $cleanDate ?: $dateStr;
-                    }
-                @endphp
-            @elseif(isset($certificate->event_date) && !empty($certificate->event_date))
-                {{ \Carbon\Carbon::parse($certificate->event_date)->format('d M Y') }}
-            @endif
+            {{ \App\Models\Certificate::formatDate($participant['date_of_reg'] ?? null, $certificate->event_date ?? null) }}
         </div>
     </div>
 </div>

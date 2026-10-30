@@ -1538,8 +1538,8 @@ class EventController extends Controller
             $rank = !empty($reg->rank) ? $reg->rank : 'Pass';
             $categoryName = $event->category->name ?? 'Belt Exam';
             $dateOfReg = !empty($event->event_date) 
-                ? \Carbon\Carbon::parse($event->event_date)->format('d M Y') 
-                : (!empty($reg->created_at) ? $reg->created_at->format('d M Y') : 'N/A');
+                ? \Carbon\Carbon::parse($event->event_date)->format('d/m/Y') 
+                : (!empty($reg->created_at) ? $reg->created_at->format('d/m/Y') : 'N/A');
 
             $participants[] = [
                 'registration'    => $reg,

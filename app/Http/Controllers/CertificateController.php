@@ -475,7 +475,7 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                             $columnMap['class'] = $colIndex;
                         } elseif (str_contains($headerLower, 'school')) {
                             $columnMap['school'] = $colIndex;
-                        } elseif (str_contains($headerLower, 'submitted') || str_contains($headerLower, 'date of reg') || str_contains($headerLower, '登録日')) {
+                        } elseif (str_contains($headerLower, 'submitted') || str_contains($headerLower, 'date of reg') || str_contains($headerLower, 'date') || str_contains($headerLower, '登録日')) {
                             $columnMap['date_of_reg'] = $colIndex;
                         } elseif (str_contains($headerLower, 'placement') || str_contains($headerLower, 'result') || str_contains($headerLower, 'position') || str_contains($headerLower, 'prize') || str_contains($headerLower, 'merit')) {
                             $columnMap['placement'] = $colIndex;
@@ -650,11 +650,10 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
                     continue;
                 }
 
-                // Clean date
+                // Clean and format date with month in words (e.g. "15 January 2026")
                 $dateOfReg = '';
                 if (!empty($submittedAt)) {
-                    $dateOfReg = trim($submittedAt);
-                    $dateOfReg = preg_replace('/\s+/', ' ', $dateOfReg);
+                    $dateOfReg = Certificate::formatDate($submittedAt);
                 }
 
                 if ($venue !== null && trim($venue) !== '') {
