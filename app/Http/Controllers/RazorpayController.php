@@ -375,9 +375,9 @@ class RazorpayController extends Controller
     {
         $eventId = $request->input('event_id');
 
-        $query = Registration::where('status', '!=', 'paid')
-            ->whereNotNull('razorpay_order_id')
-            ->where('razorpay_order_id', '!=', '');
+        // Include registrations without a stored order id too: they are matched
+        // through the Razorpay order receipt ("reg_<id>").
+        $query = Registration::where('status', '!=', 'paid');
 
         if ($eventId && $eventId !== 'all') {
             $query->where('event_id', $eventId);
@@ -400,8 +400,7 @@ class RazorpayController extends Controller
 
         foreach ($registrations as $registration) {
             try {
-                $order = $api->order->fetch($registration->razorpay_order_id);
-                $paid = $this->paidDetailsFromOrder($api, $order);
+                $paid = $this->findPaidForRegistration($api, $registration);
 
                 if (!$paid) {
                     $stillUnpaid++;
@@ -428,7 +427,7 @@ class RazorpayController extends Controller
         }
 
         $checked = $registrations->count();
-        $message = "Checked {$checked} pending registrations that have a Razorpay order. Marked {$updated} as paid. {$stillUnpaid} are still unpaid.";
+        $message = "Checked {$checked} pending registrations. Marked {$updated} as paid. {$stillUnpaid} are still unpaid.";
         if ($errors > 0) {
             $message .= " {$errors} could not be checked.";
         }
@@ -436,6 +435,50 @@ class RazorpayController extends Controller
         return redirect()
             ->route('admin.pending', $this->pendingRedirectQuery($eventId))
             ->with($errors > 0 && $updated === 0 ? 'error' : 'success', $message);
+    }
+
+    /**
+     * Look for a paid order for this registration: first the stored order id, then
+     * every order created with the receipt "reg_<id>" (a retry creates a new order and
+     * overwrites the stored id, so the paid order can be a different one).
+     *
+     * @return array{payment_id: ?string, amount: ?float, order_id: ?string}|null
+     */
+    private function findPaidForRegistration(Api $api, Registration $registration): ?array
+    {
+        $orderIds = [];
+        if (!empty($registration->razorpay_order_id)) {
+            $orderIds[] = $registration->razorpay_order_id;
+        }
+
+        try {
+            $orders = $api->order->all(['receipt' => 'reg_' . $registration->id, 'count' => 100]);
+            foreach ($orders['items'] ?? [] as $o) {
+                if (!empty($o['id']) && !in_array($o['id'], $orderIds, true)) {
+                    $orderIds[] = $o['id'];
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Could not list Razorpay orders by receipt', [
+                'registration_id' => $registration->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        foreach ($orderIds as $orderId) {
+            try {
+                $order = $api->order->fetch($orderId);
+                $paid = $this->paidDetailsFromOrder($api, $order);
+                if ($paid) {
+                    $paid['order_id'] = $orderId;
+                    return $paid;
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        return null;
     }
 
     private function pendingRedirectQuery(mixed $eventId): array
@@ -504,6 +547,10 @@ class RazorpayController extends Controller
         $updateData = [
             'status' => 'paid',
         ];
+
+        if (!empty($paid['order_id']) && $registration->razorpay_order_id !== $paid['order_id']) {
+            $updateData['razorpay_order_id'] = $paid['order_id'];
+        }
 
         if (!empty($paid['payment_id']) && (!$registration->payment_id || $registration->payment_id !== $paid['payment_id'])) {
             $updateData['payment_id'] = $paid['payment_id'];
