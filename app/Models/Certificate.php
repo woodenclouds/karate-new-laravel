@@ -62,13 +62,13 @@ class Certificate extends Model
     {
         $parsed = self::parseCertificateDate($value);
         if ($parsed !== null) {
-            return $parsed->format('d F Y');
+            return $parsed->format('d/m/Y');
         }
 
         if ($fallback !== null) {
             $fallbackParsed = self::parseCertificateDate($fallback);
             if ($fallbackParsed !== null) {
-                return $fallbackParsed->format('d F Y');
+                return $fallbackParsed->format('d/m/Y');
             }
         }
 
