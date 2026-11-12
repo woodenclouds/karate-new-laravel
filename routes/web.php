@@ -176,6 +176,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     
     // Certificate Event routes with parameters (must come after specific routes)
     Route::get('/certificates/{certificateId}/view/{registrationId}', [CertificateController::class, 'viewCertificate'])->name('admin.certificates.view');
+    Route::get('/certificates/{certificateId}/download/{registrationId}', [CertificateController::class, 'downloadCertificate'])->name('admin.certificates.download');
     Route::get('/certificates/{id}/download-all', [CertificateController::class, 'downloadAll'])->name('admin.certificates.downloadAll');
     Route::get('/certificates/{id}', [CertificateController::class, 'show'])->name('admin.certificates.show');
 });
