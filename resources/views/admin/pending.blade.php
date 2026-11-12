@@ -159,7 +159,7 @@
                         <select name="event_id" class="form-select form-select-sm" onchange="document.getElementById('pendingFilterForm').submit();">
                             @if(isset($currentEvent) && $currentEvent)
                                 <option value="{{ $currentEvent->id }}" {{ ($eventId == $currentEvent->id) ? 'selected' : '' }}>
-                                    ★ Current Event: {{ $currentEvent->title }} ({{ \Carbon\Carbon::parse($currentEvent->event_date)->format('d M Y') }})
+                                    ★ Current Event: {{ $currentEvent->title }} ({{ \Carbon\Carbon::parse($currentEvent->event_date)->format('d M Y') }}@if(!empty($currentEvent->venue)) — {{ $currentEvent->venue }}@endif)
                                 </option>
                             @endif
                             <option value="all" {{ ($eventId === 'all') ? 'selected' : '' }}>
@@ -169,7 +169,7 @@
                                 <optgroup label="Previous / Other Events">
                                     @foreach($allEvents as $ev)
                                         <option value="{{ $ev->id }}" {{ ($eventId == $ev->id) ? 'selected' : '' }}>
-                                            {{ $ev->title }} ({{ \Carbon\Carbon::parse($ev->event_date)->format('d M Y') }})
+                                            {{ $ev->title }} ({{ \Carbon\Carbon::parse($ev->event_date)->format('d M Y') }}@if(!empty($ev->venue)) — {{ $ev->venue }}@endif)
                                         </option>
                                     @endforeach
                                 </optgroup>
