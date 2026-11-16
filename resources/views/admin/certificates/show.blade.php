@@ -13,6 +13,9 @@
                 <a href="{{ route('admin.certificates.downloadAll', $certificate->id) }}" class="btn btn-success btn-sm">
                     <i class="bi bi-download"></i> Download All Certificates
                 </a>
+                <a href="{{ route('admin.certificates.downloadAll', ['id' => $certificate->id, 'format' => 'zip']) }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-file-earmark-zip"></i> Download ZIP (Individual)
+                </a>
             </div>
         </div>
 
@@ -200,10 +203,16 @@
                                                 {{ \App\Models\Certificate::formatDate($participant['date_of_reg'] ?? null, $certificate->event_date ?? null) ?: '-' }}
                                             </td>
                                             <td>
-                                                <a href="{{ route('admin.certificates.view', ['certificateId' => $certificate->id, 'registrationId' => $participant['registration_id']]) }}" 
-                                                   target="_blank" class="btn btn-sm btn-primary">
-                                                    <i class="bi bi-eye"></i> View
-                                                </a>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{{ route('admin.certificates.view', ['certificateId' => $certificate->id, 'registrationId' => $participant['registration_id']]) }}" 
+                                                       target="_blank" class="btn btn-primary" title="View Certificate">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                    <a href="{{ route('admin.certificates.download', ['certificateId' => $certificate->id, 'registrationId' => $participant['registration_id']]) }}" 
+                                                       class="btn btn-success" title="Download Certificate">
+                                                        <i class="bi bi-download"></i> Download
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty

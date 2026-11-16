@@ -84,7 +84,7 @@
                 if (!empty(trim($regId))) {
                     $regNo = preg_replace('/^MENTORS/i', '', trim($regId));
                     $regNo = preg_replace('/\D/', '', $regNo);
-                    if (strlen($regNo) > 4) $regNo = substr($regNo, -4);
+                    // No digit truncation — always show the full unique number (e.g. 10001)
                     $regNo = str_pad($regNo, 4, '0', STR_PAD_LEFT);
                 }
             @endphp

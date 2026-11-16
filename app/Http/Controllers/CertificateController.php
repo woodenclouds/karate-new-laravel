@@ -239,15 +239,37 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
     }
 
     /**
-     * View individual certificate PDF
+     * View individual certificate PDF inline in browser
      */
     public function viewCertificate($certificateId, $registrationId)
     {
+        [$pdf, $filename] = $this->buildSingleCertificatePdf($certificateId, $registrationId);
+
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * Download individual certificate PDF as an attachment
+     */
+    public function downloadCertificate($certificateId, $registrationId)
+    {
+        [$pdf, $filename] = $this->buildSingleCertificatePdf($certificateId, $registrationId);
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Build a single participant's certificate PDF and safe filename.
+     *
+     * @return array{0: \Barryvdh\DomPDF\PDF, 1: string}
+     */
+    private function buildSingleCertificatePdf($certificateId, $registrationId): array
+    {
         $certificate = Certificate::with('template')->findOrFail($certificateId);
         $participants = $certificate->participants_data ?? [];
-        
+
         $participant = collect($participants)->firstWhere('registration_id', $registrationId);
-        
+
         if (!$participant) {
             abort(404, 'Participant not found');
         }
@@ -276,8 +298,10 @@ $registration = Registration::with(['event.category'])->findOrFail($registration
           ->setOption('enable-html5-parser', true)
           ->setOption('enable-local-file-access', true);
 
-        $filename = Str::slug($participant['name'] ?? 'certificate') . '.pdf';
-        return $pdf->stream($filename);
+        $slug = Str::slug($participant['name'] ?? '') ?: 'certificate';
+        $filename = $slug . '.pdf';
+
+        return [$pdf, $filename];
     }
 
     /**

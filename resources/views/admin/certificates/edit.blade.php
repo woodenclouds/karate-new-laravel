@@ -321,7 +321,7 @@ use Illuminate\Support\Facades\Storage;
                                     <option value="{{ $event->id }}"
                                             data-venue="{{ $event->venue }}"
                                             {{ (string) old('event_id', $certificate->event_id) === (string) $event->id ? 'selected' : '' }}>
-                                        {{ $event->title }}@if($event->event_date) — {{ \Carbon\Carbon::parse($event->event_date)->format('d M Y') }}@endif
+                                        {{ $event->title }}@if($event->event_date) ({{ \Carbon\Carbon::parse($event->event_date)->format('d M Y') }}@if(!empty($event->venue)) — {{ $event->venue }}@endif)@elseif(!empty($event->venue)) — {{ $event->venue }}@endif
                                     </option>
                                 @endforeach
                             </select>

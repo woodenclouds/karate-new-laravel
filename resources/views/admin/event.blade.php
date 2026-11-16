@@ -229,11 +229,10 @@
                         <table class="table table-bordered evt-table align-middle">
                             <thead>
                                 <tr>
-                                    <th>Title</th>
+                                    <th>Title &amp; Venue</th>
                                     <th>Category</th>
                                     <th>Date</th>
                                     <th>Time</th>
-                                    <th>Venue</th>
                                     <th>Fee</th>
                                     <th>Additional Fee</th>
                                     <th>Status</th>
@@ -249,13 +248,19 @@
                                             : (str_contains($rowCat, 'kyu') || str_contains($rowCat, 'belt') ? 'bg-warning text-dark' : 'bg-info text-dark'));
                                     @endphp
                                     <tr>
-                                        <td class="fw-semibold">{{ $event->title }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $event->title }}</div>
+                                            @if(!empty($event->venue))
+                                                <div class="small text-muted mt-1">
+                                                    <i class="bi bi-geo-alt me-1"></i>{{ $event->venue }}
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td>
                                             <span class="badge evt-cat-badge rounded-pill {{ $rowBadge }}">{{ $event->category->name ?? '-' }}</span>
                                         </td>
                                         <td class="text-nowrap">{{ \Carbon\Carbon::parse($event->event_date)->format('d M Y') }}</td>
                                         <td class="text-nowrap text-muted">{{ \Carbon\Carbon::parse($event->event_time)->format('h:i A') }}</td>
-                                        <td>{{ $event->venue }}</td>
                                         <td class="text-nowrap">{{ $event->fee ? '₹' . number_format($event->fee, 2) : 'Free' }}</td>
                                         <td class="text-nowrap">{{ $event->additional_fee ? '₹' . number_format($event->additional_fee, 2) : '—' }}</td>
                                         <td class="evt-status-cell">
